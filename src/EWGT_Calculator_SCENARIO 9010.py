@@ -14,54 +14,47 @@ import copy
 import cplex
 import itertools
 import optuna
+from pathlib import Path
 
 
-#Define Input folder and file names to combine them into a full path of the files
-#input_folder="C:\\Users\\adlho\\Desktop\\241216 Code\\ArantxaCode\\BaseCase"
-input_folder="C:\\GitCodes\\IPTOP\\IOPT\\Input\\EWGT_SC2"
 
-node_file = "\\Node.csv"
-tripfile = "\\Trip.csv"
-lineStop_file = "\\LineStop.csv"
-lines_file = "\\Lines.csv"
-linetime_file = "\\LineTime.csv"
-SchDep_file = "\\SchDep.csv"
-NodeG_file = "\\LinkCon.csv"
-PathPara_file = "\\PathPara.csv"
+# Project folders
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+input_folder = PROJECT_ROOT / "data"
 
-#create a list calles nodes containing all nodes
+# Input files
+node_file = input_folder / "Node.csv"
+tripfile = input_folder / "Trip.csv"
+lineStop_file = input_folder / "LineStop.csv"
+lines_file = input_folder / "Lines.csv"
+linetime_file = input_folder / "LineTime.csv"
+SchDep_file = input_folder / "SchDep.csv"
+NodeG_file = input_folder / "LinkCon.csv"
+PathPara_file = input_folder / "PathPara.csv"
+
+# Create node containers
 nodes = []
 nodes_dict = {}
 
-#create list of lines
+# Create line containers
 lines = []
 lines_dict = {}
 
-##full path of files
-node_path= "".join([input_folder,node_file])
-trips_path = "".join([input_folder,tripfile])
-LineStop_path = "".join([input_folder,lineStop_file])
-lines_path = "".join([input_folder,lines_file])
-lineTimefile_path = "".join([input_folder,linetime_file])
-SchDep_path = "".join([input_folder,SchDep_file])
-NodeG_path = "".join([input_folder,NodeG_file])
-PathPara_path = "".join([input_folder, PathPara_file])
+# Read CSV files
+nodeCSV = pd.read_csv(node_file)
+tripCSV = pd.read_csv(tripfile)
+LineStopCSV = pd.read_csv(lineStop_file)
+LinesCSV = pd.read_csv(lines_file)
+LineTimeCSV = pd.read_csv(linetime_file)
+SchDepCSV = pd.read_csv(SchDep_file)
+GNCostCSV = pd.read_csv(NodeG_file)
+PathParaCSV = pd.read_csv(PathPara_file)
 
-#Read CSV files and create DataFrames
-nodeCSV = pd.read_csv(node_path)
-tripCSV = pd.read_csv(trips_path)
-LineStopCSV = pd.read_csv(LineStop_path)
-LinesCSV = pd.read_csv(lines_path)
-LineTimeCSV = pd.read_csv(lineTimefile_path)
-SchDepCSV = pd.read_csv(SchDep_path)
-GNCostCSV = pd.read_csv(NodeG_path)
-PathParaCSV = pd.read_csv(PathPara_path)
+print("All input files have been read")
 
-#Create NodeStop List for each line
+# Basic structures derived from input data
 Linestotal = int(LineStopCSV.shape[0])
 Stops_dict = {}
-
-print("All Input files has been read")
 
 #%%
 
