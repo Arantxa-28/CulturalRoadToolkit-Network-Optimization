@@ -1,0 +1,7 @@
+id,Name,SerType,HeadWay,StartTime,EndTime,VehType,Cap,FullCap,Doors
+0,Line B,Schedule,10,0,61,Train,300,600,3
+1,Line E,Schedule,10,0,61,Train,300,600,3
+2,oreundstog,Schedule,10,0,61,Train,300,600,3
+3,300s,Schedule,15,0,61,Bus,50,80,1
+4,M2,Frequency,11,0,0,Metro,300,600,3
+5,150S,Frequency,15,0,0,Bus,50,80,1

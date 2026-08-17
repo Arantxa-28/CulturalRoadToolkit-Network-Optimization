@@ -1,0 +1,15 @@
+Cost,Value
+WalkW,1
+WaitW,0.575
+ConW,0.64
+ZoneWaitW,0.28
+TransferP,2.15
+InVTrainW,0.53
+InVSTrainW,0.43
+InVBusW,0.56
+InVMetroW,0.42
+MinWaitTime,0
+TransferTime,1
+WaitHeadway,1
+BoundNonDomEventLower,0
+BoundNonDomEventUpper,0
