@@ -31,6 +31,7 @@ linetime_file = input_folder / "LineTime.csv"
 SchDep_file = input_folder / "SchDep.csv"
 NodeG_file = input_folder / "LinkCon.csv"
 PathPara_file = input_folder / "PathPara.csv"
+DesignPara_file = input_folder / "DesignPara.csv"
 
 # Create node containers
 nodes = []
@@ -40,15 +41,58 @@ nodes_dict = {}
 lines = []
 lines_dict = {}
 
-# Read CSV files
-nodeCSV = pd.read_csv(node_file)
-tripCSV = pd.read_csv(tripfile)
-LineStopCSV = pd.read_csv(lineStop_file)
-LinesCSV = pd.read_csv(lines_file)
-LineTimeCSV = pd.read_csv(linetime_file)
-SchDepCSV = pd.read_csv(SchDep_file)
-GNCostCSV = pd.read_csv(NodeG_file)
-PathParaCSV = pd.read_csv(PathPara_file)
+
+#%% INPUT DATA LOADER
+
+def load_input_data(input_folder):
+
+    files = {
+        "nodes": input_folder / "Node.csv",
+        "trips": input_folder / "Trip.csv",
+        "line_stops": input_folder / "LineStop.csv",
+        "lines": input_folder / "Lines.csv",
+        "line_times": input_folder / "LineTime.csv",
+        "scheduled_departures": input_folder / "SchDep.csv",
+        "link_connections": input_folder / "LinkCon.csv",
+        "path_parameters": input_folder / "PathPara.csv",
+        "design_parameters": input_folder / "DesignPara.csv",
+    }
+
+    # Check that all files exist
+    missing_files = [
+        str(path)
+        for path in files.values()
+        if not path.exists()
+    ]
+
+    if missing_files:
+        raise FileNotFoundError(
+            "Missing input files:\n" + "\n".join(missing_files)
+        )
+
+    data = {
+        name: pd.read_csv(path)
+        for name, path in files.items()
+    }
+
+    print("All input files have been read")
+
+    return data
+
+
+data = load_input_data(input_folder)
+
+# Keep the current variable names temporarily
+nodeCSV = data["nodes"]
+tripCSV = data["trips"]
+LineStopCSV = data["line_stops"]
+LinesCSV = data["lines"]
+LineTimeCSV = data["line_times"]
+SchDepCSV = data["scheduled_departures"]
+GNCostCSV = data["link_connections"]
+PathParaCSV = data["path_parameters"]
+DesignParaCSV = data["design_parameters"]
+
 
 print("All input files have been read")
 
@@ -56,24 +100,216 @@ print("All input files have been read")
 Linestotal = int(LineStopCSV.shape[0])
 Stops_dict = {}
 
-#%%
 
-#Define cosntants from PathPara
+#%% INPUT VALIDATION
 
-WalkW = float(PathParaCSV.loc[PathParaCSV['Cost'] == 'WalkW', 'Value'].values[0])
-WaitW = float(PathParaCSV.loc[PathParaCSV['Cost'] == 'WaitW', 'Value'].values[0])
-ConW = float(PathParaCSV.loc[PathParaCSV['Cost'] == 'ConW', 'Value'].values[0])
-ZoneWaitW =float( PathParaCSV.loc[PathParaCSV['Cost'] == 'ZoneWaitW', 'Value'].values[0])
-TransferP =float( PathParaCSV.loc[PathParaCSV['Cost'] == 'TransferP', 'Value'].values[0])
-InVTrainW = float(PathParaCSV.loc[PathParaCSV['Cost'] == 'InVTrainW', 'Value'].values[0])
-InVSTrainW = float(PathParaCSV.loc[PathParaCSV['Cost'] == 'InVSTrainW', 'Value'].values[0])
-InVBusW = float(PathParaCSV.loc[PathParaCSV['Cost'] == 'InVBusW', 'Value'].values[0])
-InVMetroW = float(PathParaCSV.loc[PathParaCSV['Cost'] == 'InVMetroW', 'Value'].values[0])
-MinWaitTime =float( PathParaCSV.loc[PathParaCSV['Cost'] == 'MinWaitTime', 'Value'].values[0])
-TransferTime = float(PathParaCSV.loc[PathParaCSV['Cost'] == 'TransferTime', 'Value'].values[0])
-WaitHeadway = float(PathParaCSV.loc[PathParaCSV['Cost'] == 'WaitHeadway', 'Value'].values[0])
-BoundNonDomEventLower = float(PathParaCSV.loc[PathParaCSV['Cost'] == 'BoundNonDomEventLower', 'Value'].values[0])
-BoundNonDomEventUpper = float( PathParaCSV.loc[PathParaCSV['Cost'] == 'BoundNonDomEventUpper', 'Value'].values[0])
+def validate_input_data(data):
+
+    required_columns = {
+        "nodes": {
+            "id",
+            "Name",
+            "Type"
+        },
+        "trips": {
+            "id",
+            "Origin",
+            "Dest",
+            "TargetDepTime",
+            "Demand",
+            "DemandGroup2"
+        },
+        "line_stops": {
+            "link",
+            "A",
+            "B"
+        },
+        "lines": {
+            "id",
+            "Name",
+            "SerType",
+            "HeadWay",
+            "StartTime",
+            "EndTime",
+            "VehType",
+            "Cap",
+            "FullCap",
+            "Doors"
+        },
+        "line_times": {
+            "lineID",
+            "Time"
+        },
+        "path_parameters": {
+            "Cost",
+            "Value"
+        }
+    }
+
+    # Check required columns
+    for dataset_name, columns in required_columns.items():
+
+        df = data[dataset_name]
+
+        missing = columns - set(df.columns)
+
+        if missing:
+            raise ValueError(
+                f"{dataset_name}: missing columns {sorted(missing)}"
+            )
+
+    # ------------------------------------------------------------------
+    # Node validation
+    # ------------------------------------------------------------------
+
+    node_ids = set(data["nodes"]["id"])
+
+    invalid_origins = (
+        set(data["trips"]["Origin"])
+        - node_ids
+    )
+
+    invalid_destinations = (
+        set(data["trips"]["Dest"])
+        - node_ids
+    )
+
+    if invalid_origins:
+        raise ValueError(
+            f"Trip.csv contains invalid origins: "
+            f"{sorted(invalid_origins)}"
+        )
+
+    if invalid_destinations:
+        raise ValueError(
+            f"Trip.csv contains invalid destinations: "
+            f"{sorted(invalid_destinations)}"
+        )
+
+    # ------------------------------------------------------------------
+    # Line validation
+    # ------------------------------------------------------------------
+
+    line_ids = set(data["lines"]["id"])
+    line_time_ids = set(data["line_times"]["lineID"])
+    line_stop_ids = set(data["line_stops"]["link"])
+
+    missing_time = line_ids - line_time_ids
+
+    if missing_time:
+        raise ValueError(
+            f"Missing travel times for lines: "
+            f"{sorted(missing_time)}"
+        )
+
+    missing_links = line_ids - line_stop_ids
+
+    if missing_links:
+        raise ValueError(
+            f"Missing LineStop entries for lines: "
+            f"{sorted(missing_links)}"
+        )
+
+    # ------------------------------------------------------------------
+    # Service type validation
+    # ------------------------------------------------------------------
+
+    valid_service_types = {
+        "Schedule",
+        "Frequency"
+    }
+
+    invalid_types = (
+        set(data["lines"]["SerType"])
+        - valid_service_types
+    )
+
+    if invalid_types:
+        raise ValueError(
+            f"Unknown service types: "
+            f"{sorted(invalid_types)}"
+        )
+
+    # ------------------------------------------------------------------
+    # Capacity validation
+    # ------------------------------------------------------------------
+
+    if (data["lines"]["Cap"] <= 0).any():
+        raise ValueError(
+            "All lines must have Cap > 0."
+        )
+
+    if (
+        data["lines"]["FullCap"]
+        <
+        data["lines"]["Cap"]
+    ).any():
+        raise ValueError(
+            "FullCap must be >= Cap for every line."
+        )
+
+    print("Input validation completed successfully.")
+
+
+validate_input_data(data)
+
+
+#%% PATH PARAMETERS
+
+path_params = (
+    PathParaCSV
+    .set_index("Cost")["Value"]
+    .astype(float)
+    .to_dict()
+)
+
+# Define constants from PathPara
+
+WalkW = path_params["WalkW"]
+WaitW = path_params["WaitW"]
+ConW = path_params["ConW"]
+ZoneWaitW = path_params["ZoneWaitW"]
+TransferP = path_params["TransferP"]
+InVTrainW = path_params["InVTrainW"]
+InVSTrainW = path_params["InVSTrainW"]
+InVBusW = path_params["InVBusW"]
+InVMetroW = path_params["InVMetroW"]
+MinWaitTime = path_params["MinWaitTime"]
+TransferTime = path_params["TransferTime"]
+WaitHeadway = path_params["WaitHeadway"]
+BoundNonDomEventLower = path_params["BoundNonDomEventLower"]
+BoundNonDomEventUpper = path_params["BoundNonDomEventUpper"]
+
+
+#%% LINE GROUPS
+
+line_ids = LinesCSV["id"].astype(int).tolist()
+
+schedule_line_ids = (
+    LinesCSV.loc[
+        LinesCSV["SerType"] == "Schedule",
+        "id"
+    ]
+    .astype(int)
+    .tolist()
+)
+
+frequency_line_ids = (
+    LinesCSV.loc[
+        LinesCSV["SerType"] == "Frequency",
+        "id"
+    ]
+    .astype(int)
+    .tolist()
+)
+
+num_lines = len(line_ids)
+
+print(f"Number of lines: {num_lines}")
+print(f"Schedule-based lines: {schedule_line_ids}")
+print(f"Frequency-based lines: {frequency_line_ids}")
+
+
 
 #%% Define Lines Perception Factors
 
@@ -114,49 +350,77 @@ for row in range (0,Linestotal,1):
             Stops_dict[f"StopLine{lineid}"] = stop_list       
             exec(f"Stops_list{lineid}= stop_list")
 
-# Create NodeClass for the nodes on the network
+#%% CREATE NODES
+
 class NodeClass:
-    def __init__(self, node_id, name, node_type): #Creates the class of Nodes
+    def __init__(self, node_id, name, node_type):
         self.ID = node_id
         self.Name = name
         self.Type = node_type
 
-#Create all nodes as NodeClass type
-nodestotal = int(nodeCSV.shape[0])
-for row in range(0,nodestotal,1):
-    node_id = int(nodeCSV.iloc[row,0])
-    name = nodeCSV.iloc[row,1]    
-    node_type = nodeCSV.iloc[row,2]
-    exec(f"node{node_id} = NodeClass(node_id, name, node_type)")
-    node = NodeClass(node_id, name, node_type)
-    nodes_dict[f'node{node_id}'] = node
+
+nodes = []
+nodes_dict = {}
+
+for _, row in nodeCSV.iterrows():
+
+    node_id = int(row["id"])
+
+    node = NodeClass(
+        node_id=node_id,
+        name=row["Name"],
+        node_type=row["Type"]
+    )
+
+    nodes_dict[node_id] = node
     nodes.append(node)
-    row = row+1
+
+print(f"{len(nodes)} nodes created")
 
 
-# Create TripClass      
+#%% CREATE TRIPS
+
 class TripClass:
-    def __init__(self, trip_id, origin, destination, Demand):
+    def __init__(self, trip_id, origin, destination, demand):
         self.ID = trip_id
         self.Origin = origin
         self.Destination = destination
-        self.Demand = Demand
+        self.Demand = demand
 
-#Create all Trips as TripClass (Class) type
-tripstotal = int(tripCSV.shape[0])
-for row in range(0,tripstotal,1):
-    
-    trip_id = int(tripCSV.iloc[row,0])
-    origin = int(tripCSV.iloc[row,1])
-    destination = int(tripCSV.iloc[row,2])
-    Demand = float(tripCSV.iloc[row,9])   
 
-    exec(f"trip{trip_id} = TripClass(trip_id, origin, destination, Demand)")
-    row = row+1
+trips = []
+trips_dict = {}
 
-#Create TransitLineClass
+for _, row in tripCSV.iterrows():
+
+    trip_id = int(row["id"])
+
+    trip = TripClass(
+        trip_id=trip_id,
+        origin=int(row["Origin"]),
+        destination=int(row["Dest"]),
+        demand=float(row["Demand"])
+    )
+
+    trips_dict[trip_id] = trip
+    trips.append(trip)
+
+print(f"{len(trips)} trips created")
+
+
+#%% CREATE TRANSIT LINES
+
 class TransitLineClass:
-    def __init__(self, set_id, name, start_time, end_time, headway, service_type, vehicle_type):
+    def __init__(
+        self,
+        set_id,
+        name,
+        start_time,
+        end_time,
+        headway,
+        service_type,
+        vehicle_type
+    ):
         self.ID = set_id
         self.Name = name
         self.StartTime = start_time
@@ -164,6 +428,7 @@ class TransitLineClass:
         self.Headway = headway
         self.ServiceType = service_type
         self.VehicleType = vehicle_type
+
         self.Stops = []
         self.SegTravelTimes = []
         self.TravelLength = 0.0
@@ -174,170 +439,250 @@ class TransitLineClass:
         self.NumOfDoors = 0
         self.FreCap = None
 
-#Create each line as a LineClass
-linestotal = int(LinesCSV.shape[0])
 
-for row in range(0,linestotal,1):
-    set_id = int(LinesCSV.iloc[row,0])
-    name = str(LinesCSV.iloc[row,1])
-    start_time = int(LinesCSV.iloc[row,4])
-    end_time = int(LinesCSV.iloc[row,5])
-    headway = int(LinesCSV.iloc[row,3])
-    service_type = str(LinesCSV.iloc[row,2])
-    vehicle_type = str(LinesCSV.iloc[row,6])
+lines = []
+lines_dict = {}
 
-    exec(f"line{set_id} = TransitLineClass(set_id, name, start_time, end_time, headway, service_type, vehicle_type)")
-    line = TransitLineClass(set_id, name, start_time, end_time, headway, service_type, vehicle_type)
-    lines_dict[f'line{set_id}'] = line
+for _, row in LinesCSV.iterrows():
+
+    line_id = int(row["id"])
+
+    line = TransitLineClass(
+        set_id=line_id,
+        name=str(row["Name"]),
+        start_time=int(row["StartTime"]),
+        end_time=int(row["EndTime"]),
+        headway=float(row["HeadWay"]),
+        service_type=str(row["SerType"]),
+        vehicle_type=str(row["VehType"])
+    )
+
+    lines_dict[line_id] = line
     lines.append(line)
-    row = row+1
 
+print(f"{len(lines)} transit lines created")
 
-#Generate timetable of lines list of lines 
-num_lines = len(lines)
-headway=0
-n_trips_lines = 0
-timetable=[0]
+#%% GENERATE INITIAL TIMETABLES
+
 end_simulation = 120
 
-for l in range(0,num_lines,1):
-    headway=int(lines[l].Headway)
-    waiting_time=float(headway/2)
-    n_trips_lines = int(end_simulation/(lines[l].Headway))
-    timetable=[0]*n_trips_lines
-    wait_table=[0]*n_trips_lines
-    start_time=int(lines[l].StartTime)
-    line_name=lines[l].Name
-        
-    for i in range(0,n_trips_lines,1):
-        if i==0:
-            timetable[i]=start_time
-            wait_table[i]=waiting_time
-        elif i>0:
-            timetable[i]=timetable[i-1]+headway
-            wait_table[i]=waiting_time
-            exec(f"timetable_{l}_ = timetable")
-            exec(f"wait_table_{l}_ = wait_table")
-        i=i+1
-    l=l+1
+def generate_initial_timetables(lines, end_simulation):
 
-#timatable in a list
-timetables_list = [timetable_0_,timetable_1_, timetable_2_, timetable_3_, timetable_4_, timetable_5_] 
+    timetables = {}
+    wait_tables = {}
+
+    for line in lines:
+
+        line_id = int(line.ID)
+        headway = int(line.Headway)
+        start_time = int(line.StartTime)
+
+        if headway <= 0:
+            raise ValueError(
+                f"Line {line_id} has invalid headway: {headway}"
+            )
+
+        timetable = []
+        wait_table = []
+
+        current_time = start_time
+
+        while current_time < end_simulation:
+
+            timetable.append(current_time)
+            wait_table.append(headway / 2)
+
+            current_time += headway
+
+        timetables[line_id] = timetable
+        wait_tables[line_id] = wait_table
+
+    return timetables, wait_tables
+
+
+timetables, wait_tables = generate_initial_timetables(
+    lines,
+    end_simulation=end_simulation
+)
 
 print("Timetables created")
-print(timetables_list)
-print(" ")
 
-#%% THIS SECTION CREATES THE ROUTES AVAILABLES
+for line_id in line_ids:
+    print(
+        f"Line {line_id}: {timetables[line_id]}"
+    )
 
-elemento=int(LineStopCSV.iloc[0,2])
-num_links=int(LineStopCSV.shape[0])
-link_dict={}
+# Temporary compatibility with the current code
+timetables_list = [
+    timetables[line_id]
+    for line_id in line_ids
+]
 
-for row in range(0,num_links,1):
-    link_dict[row]={"Link":int(row),"LineID":int(row),"Time":int(LineTimeCSV.iloc[row,1]),"A":int(LineStopCSV.iloc[row,1]),"B":int(LineStopCSV.iloc[row,2])}
-    row=row+1
+wait_tables_list = [
+    wait_tables[line_id]
+    for line_id in line_ids
+]
+
+
+#%% BUILD NETWORK LINKS
+
+# Merge link topology with travel times
+links_df = LineStopCSV.merge(
+    LineTimeCSV,
+    left_on="link",
+    right_on="lineID",
+    how="left",
+    validate="one_to_one"
+)
+
+# Check that every link has a travel time
+if links_df["Time"].isna().any():
+    missing_links = links_df.loc[
+        links_df["Time"].isna(),
+        "link"
+    ].tolist()
+
+    raise ValueError(
+        f"Missing travel time for links: {missing_links}"
+    )
+
+# Create link dictionary
+link_dict = {}
+
+for _, row in links_df.iterrows():
+
+    link_id = int(row["link"])
+
+    link_dict[link_id] = {
+        "Link": link_id,
+        "LineID": link_id,
+        "Time": int(row["Time"]),
+        "A": int(row["A"]),
+        "B": int(row["B"])
+    }
+
+num_links = len(link_dict)
+
+print(f"{num_links} network links created")
+
+
+#%% BUILD NETWORK GRAPH
 
 grafo = nx.MultiDiGraph()
 
-for k in range(0,num_links,1):
-    nodoA = int(link_dict[k]["A"])
-    nodoB = int(link_dict[k]["B"])
-    time = int(link_dict[k]["Time"])
-    id_link_grafo =  int(link_dict[k]["Link"])
-        
-    grafo.add_edge(nodoA, nodoB, key=k, cost=time, id=k)
-    
+for link_id, link_data in link_dict.items():
 
-paths_nodes = list(nx.all_simple_paths(grafo, source=0, target=3))
+    grafo.add_edge(
+        link_data["A"],
+        link_data["B"],
+        key=link_id,
+        line_id=link_id,
+        cost=link_data["Time"]
+    )
 
-paths_links = []
-for path in paths_nodes:
-    links_secuencia = []
-    
-    # Para cada par de nodos consecutivos, obtener el ID del arco (link)
-    for i in range(len(path) - 1):
-        nodo_origen = path[i]
-        nodo_destino = path[i + 1]
-        
-        # Obtener todos los arcos entre los nodos
-        arcos = grafo.get_edge_data(nodo_origen, nodo_destino)
-        
-        # Elegir el ID de cada arco. Si hay varios, tomamos el primero
-        id_arco = list(arcos.keys())[0]
-        
-        # Agregar el ID del arco al camino
-        links_secuencia.append(id_arco)
-    
-    paths_links.append(links_secuencia)
-
-#Generate a list of parallel edges
-paral=[]
-
-for arc in range(0, num_links - 1):
-    a_link = int(link_dict[arc]["A"])
-    b_link = int(link_dict[arc]["B"])
-
-    # Comparamos con todos los arcos posteriores
-    for next_arc in range(arc + 1, num_links):
-        aa_link = int(link_dict[next_arc]["A"])
-        bb_link = int(link_dict[next_arc]["B"])
-
-        # Si se cumple la condición de paralelismo
-        if a_link == aa_link and b_link == bb_link:
-            paral.append([arc, next_arc]) 
- 
-
-# Crear un diccionario con los pares originales e invertidos
-
-parall_dict = {
-    0: 1, 
-    2: 4, 
-    1: 0, 
-    4: 2
-}
- 
-#Eliminate the duplicated paths, create a set for not duplicated paths
-paths_links_corr=tuple(paths_links)
-num_paths=int(len(paths_links))
-set_results = set(tuple(i) for i in paths_links)
-paths_no_double=[list(i) for i in set_results]
-list_paral_all = [elemento for sublista in paral for elemento in sublista]
-
-#add new paths with paral links
-m = len(set_results)
-num_paral=len(list_paral_all)
-new_path_loop=[]
-
-for i in range(m):
-    n = len(paths_no_double[i])
-    list_temp = list(paths_no_double[i])
-    
-    for j in range(n):
-        for k in range(num_paral):
-            if list_temp[j] == list_paral_all[k]:
-                val = list_temp[j]
-                new_path = list_temp.copy()  # Asegurarse de no modificar la lista original
-                if val in parall_dict:  # Verificar que la clave esté en parall_dict
-                    new_path[j] = parall_dict[val]
-                    new_path_loop.append(new_path)
+print(
+    f"Network graph created: "
+    f"{grafo.number_of_nodes()} nodes, "
+    f"{grafo.number_of_edges()} links"
+)
 
 
-#merge pathset from new_path_loop and paths_no_double
+#%% DETECT OD PAIR
 
-g_paths_merge = []
-g_paths_merge.extend(new_path_loop)
-g_paths_merge.extend(paths_no_double)
+od_pairs = (
+    tripCSV[["Origin", "Dest"]]
+    .drop_duplicates()
+    .reset_index(drop=True)
+)
 
-g_paths_merge = [[3, 1, 2], [3, 0, 4], [5, 4], [3, 0, 2], [5, 2],[3, 1, 4]]
+if len(od_pairs) != 1:
+    raise ValueError(
+        "Current route-generation version expects one OD pair. "
+        f"Found {len(od_pairs)} OD pairs."
+    )
+
+source_node = int(od_pairs.loc[0, "Origin"])
+target_node = int(od_pairs.loc[0, "Dest"])
+
+print(
+    f"Route generation OD: "
+    f"{source_node} -> {target_node}"
+)
+
+
+#%% GENERATE ROUTES AUTOMATICALLY
+
+def generate_routes(graph, source, target):
+
+    # Simple graph to obtain node sequences
+    simple_graph = nx.DiGraph()
+
+    for u, v in graph.edges():
+        simple_graph.add_edge(u, v)
+
+    node_paths = list(
+        nx.all_simple_paths(
+            simple_graph,
+            source=source,
+            target=target
+        )
+    )
+
+    routes = []
+
+    for node_path in node_paths:
+
+        edge_options = []
+
+        for u, v in zip(
+            node_path[:-1],
+            node_path[1:]
+        ):
+
+            edges = graph.get_edge_data(u, v)
+
+            if edges is None:
+                raise ValueError(
+                    f"No links found between nodes {u} and {v}"
+                )
+
+            available_links = sorted(
+                int(link_id)
+                for link_id in edges.keys()
+            )
+
+            edge_options.append(available_links)
+
+        for combination in itertools.product(*edge_options):
+            routes.append(list(combination))
+
+    return routes
+
+
+g_paths_merge = generate_routes(
+    grafo,
+    source=source_node,
+    target=target_node
+)
+
+
 route_summary_lines = {
-    "route_1": [3, 1, 2],
-    "route_2": [3, 0, 4],
-    "route_3": [5, 4],
-    "route_4": [3, 0, 2],
-    "route_5": [5, 2],
-    "route_6": [3, 1, 4],
+    f"route_{i + 1}": route
+    for i, route in enumerate(g_paths_merge)
 }
+
+
+print("\nRoutes generated automatically:")
+
+for route_name, route_lines in route_summary_lines.items():
+    print(
+        f"{route_name}: {route_lines}"
+    )
+
+print(
+    f"Total routes generated: "
+    f"{len(route_summary_lines)}"
+)
 
 #%% G PATHS MERGE
 
@@ -499,40 +844,123 @@ for route, times in durations.items():
 
 
 # Demand by interval (Group 1 and Group 2)---------------------------------------------------------------------------
-demand_dict = dict(zip(tripCSV['TargetDepTime'], tripCSV['Demand']))
-demand_dict_2 = dict(zip(tripCSV['TargetDepTime'], tripCSV['DemandGroup2']))
 
-#compute comulative demand cosnidering availability of routes
-unique_start_times = sorted({time for route in durations.values() for time in route.keys()})
+demand_dict = dict(
+    zip(
+        tripCSV["TargetDepTime"],
+        tripCSV["Demand"]
+    )
+)
 
-demand_by_interval = demand_by_interval = {k: 0 for k in demand_dict}
-demand_by_interval_2 = demand_by_interval_2 = {k: 0 for k in demand_dict}
-accumulated_demand   = {k: 0 for k in unique_start_times}
-accumulated_demand_2 = {k: 0 for k in unique_start_times}
+demand_dict_2 = dict(
+    zip(
+        tripCSV["TargetDepTime"],
+        tripCSV["DemandGroup2"]
+    )
+)
 
-# Recorrer demand_dict y acumular en el intervalo correcto
-for time, demand in demand_dict.items():
-    # Encontrar el unique_start_time más cercano sin pasarse
-    closest_time = max([t for t in unique_start_times if t <= time])
-    accumulated_demand[closest_time] += demand
+# PASSENGER DEMAND CHECK
 
-for key in accumulated_demand:
-    demand_by_interval[key] = accumulated_demand[key] 
+total_demand_g1 = sum(demand_dict.values())
+total_demand_g2 = sum(demand_dict_2.values())
 
-# Recorrer demand_dict_2 y acumular en el intervalo correcto
-for time, demand in demand_dict_2.items():
-    closest_time = max([t for t in unique_start_times if t <= time])
-    accumulated_demand_2[closest_time] += demand
+total_demand = total_demand_g1 + total_demand_g2
 
-for key in accumulated_demand:
-    demand_by_interval_2[key] = accumulated_demand_2[key] 
+if total_demand_g1 <= 0:
+    raise ValueError(
+        "Passenger Group 1 must have positive demand."
+    )
+
+group_2_active = total_demand_g2 > 0
+
+print(f"Total demand Group 1: {total_demand_g1:.2f}")
+print(f"Total demand Group 2: {total_demand_g2:.2f}")
+print(f"Total passenger demand: {total_demand:.2f}")
+
+if total_demand > 0:
+    print(
+        f"Group 1 share: "
+        f"{total_demand_g1 / total_demand:.2%}"
+    )
+
+    print(
+        f"Group 2 share: "
+        f"{total_demand_g2 / total_demand:.2%}"
+    )
+
+if group_2_active:
+    print("Two passenger groups active.")
+else:
+    print(
+        "Group 2 demand is zero. "
+        "Running single-group scenario."
+    )
+
+#%% COMPUTE DEMAND BY AVAILABLE DEPARTURE INTERVAL
+
+unique_start_times = sorted({
+    time
+    for route in durations.values()
+    for time in route.keys()
+})
 
 
-#Compute list of travel time and avaialble routes
-keys_list = [key for key, data in interval_data.items() if data['available_routes'] > 0]
-durations_list = [data[0]['total_duration'] for route, data in durations.items() if 0 in data]
+def assign_demand_to_intervals(
+    demand_input,
+    unique_start_times
+):
+
+    if not unique_start_times:
+        raise ValueError(
+            "No available route departure times were generated."
+        )
+
+    accumulated_demand = {
+        time: 0.0
+        for time in unique_start_times
+    }
+
+    for time, demand in demand_input.items():
+
+        previous_departures = [
+            t
+            for t in unique_start_times
+            if t <= time
+        ]
+
+        if previous_departures:
+            closest_time = max(previous_departures)
+        else:
+            closest_time = unique_start_times[0]
+
+        accumulated_demand[closest_time] += float(demand)
+
+    return accumulated_demand
 
 
+demand_by_interval = assign_demand_to_intervals(
+    demand_dict,
+    unique_start_times
+)
+
+demand_by_interval_2 = assign_demand_to_intervals(
+    demand_dict_2,
+    unique_start_times
+)
+
+print(
+    "Demand check Group 1:",
+    sum(demand_dict.values()),
+    "->",
+    sum(demand_by_interval.values())
+)
+
+print(
+    "Demand check Group 2:",
+    sum(demand_dict_2.values()),
+    "->",
+    sum(demand_by_interval_2.values())
+)
 
 #%% COMBINED_DICT
 start_route_list = unique_start_times
@@ -767,30 +1195,30 @@ for time, data in combined_dict.items():
 for time in passenger_route_2:
     passenger_route_2[time]["demand"] = demand_by_interval_2.get(time, 0)
 
-#%% COMPUTE PASSENGERS BY RUOTE DURING SIMULATION
+#%% COMPUTE PASSENGERS BY ROUTE DURING SIMULATION
 ## demand_probability_product
 
 probability_demand_product = {}
 probability_demand_product_2 = {}
-# Calcular demanda por ruta segun probailities (que son 0, 15, 30, 45)
 
-# for demand
+# Group 1
 for key, demand in demand_by_interval.items():
     if key in probabilities:
         prob_demand_list = [
-            demand * prob  
-            for route, prob in probabilities[key].items()
-        ]
-        probability_demand_product[key] = prob_demand_list
-# for demand 2
-for key, demand in demand_by_interval_2.items():
-    if key in probabilities:
-        prob_demand_list_2 = [
             demand * prob
             for route, prob in probabilities[key].items()
         ]
-        probability_demand_product_2[key] = prob_demand_list_2
+        probability_demand_product[key] = prob_demand_list
 
+# Group 2
+for key, demand in demand_by_interval_2.items():
+    if key in probabilities_2:
+        prob_demand_list_2 = [
+            demand * prob
+            for route, prob in probabilities_2[key].items()
+        ]
+        probability_demand_product_2[key] = prob_demand_list_2
+        
 # for demand
 for key, value in combined_dict.items():
     # Verificar si existe una lista de productos de demanda * probabilidad para este intervalo en probability_demand_product
@@ -1212,27 +1640,31 @@ def calculate_route_probabilities(combined_dict_input):
 # function for recompute probailities for group demand 2
 
 def calculate_route_probabilities_2(combined_dict_input):
+
     probabilities_2 = {}
 
     for key, value in combined_dict_input.items():
-        gen_travel_cost_it = np.array(value['gen_travel_cost_2'])
 
-        # Suma total de costos por ruta
-        total_cost_it = gen_travel_cost_it
+        gen_travel_cost_it = np.array(
+            value['gen_travel_cost_2']
+        )
 
-        # Aplicar función logit (exponencial negativa de los costos)
-        exp_neg_costs = np.exp(-total_cost_it)
+        # Apply MNL
+        exp_neg_costs = np.exp(-gen_travel_cost_it)
 
-        # Normalización
-        total_exp_it = np.sum(exp_neg_costs_it)
-        if total_exp_it == 0:
-            total_exp_it = 1e-10  # Para evitar división por cero
+        total_exp = np.sum(exp_neg_costs)
 
-        probs_it = exp_neg_costs_it / total_exp_it
+        if total_exp == 0:
+            total_exp = 1e-10
 
-        # Asociar a cada ruta su probabilidad
-        routes_it = value['routes']
-        probabilities_2[key] = {route: float(probs_it[i]) for i, route in enumerate(routes_it)}
+        probs = exp_neg_costs / total_exp
+
+        routes = value['routes']
+
+        probabilities_2[key] = {
+            route: float(probs[i])
+            for i, route in enumerate(routes)
+        }
 
     return probabilities_2   
  
@@ -1263,30 +1695,53 @@ for key, value in combined_dict_new.items():
 print("DEMAND BY INTERVAL STRUCTURE", demand_by_interval)
 print("demand by interval structure")
 
-def update_demand_prob_product(demand_by_interval, probabilities_input):
+def update_demand_prob_product(
+    demand_by_interval,
+    probabilities_input
+):
+
     probability_demand_product = {}
 
-    # Calcular productos demanda × probabilidad
-    for key, demand in demand_by_interval.items():
-        if key in probabilities_input:
-            prob_demand_list = [
-                demand * prob
-                for route, prob in probabilities_input[key].items()
+    # If total demand is zero, return zero flows
+    if sum(demand_by_interval.values()) == 0:
+
+        for key, route_probs in probabilities_input.items():
+
+            probability_demand_product[key] = [
+                0.0
+                for _ in route_probs
             ]
-            probability_demand_product[key] = prob_demand_list
-    
+
+        return probability_demand_product
+
+    # Normal case
+    for key, demand in demand_by_interval.items():
+
+        if key in probabilities_input:
+
+            probability_demand_product[key] = [
+                float(demand) * float(prob)
+                for prob in probabilities_input[key].values()
+            ]
+
+    # Demand conservation check
     total_demand = sum(demand_by_interval.values())
-    
-    total_probability_product = sum(
-        sum(product_list) for product_list in probability_demand_product.values()
+
+    total_assigned = sum(
+        sum(values)
+        for values in probability_demand_product.values()
     )
-    
-    error = total_demand - total_probability_product
-    
-    if abs(error) > 1e-3:
-        for key in reversed(sorted(probability_demand_product.keys())):
-            if sum(probability_demand_product[key]) > 0:
-                # Ajustar el primer valor (podrías ajustar el mayor si quieres)
+
+    error = total_demand - total_assigned
+
+    if abs(error) > 1e-6:
+
+        for key in reversed(
+            sorted(probability_demand_product.keys())
+        ):
+
+            if probability_demand_product[key]:
+
                 probability_demand_product[key][0] += error
                 break
 
@@ -1312,38 +1767,82 @@ for key, value in combined_dict_new.items():
         total_travelcost_routes_it += partial_sum_it
 
 #%%% NOW WE HAVE COMBINED_DICT AND COMBINED_DICT_NEW (afeter crowding)
-#%% ELABORATE FUNCTION FOR MSA
+#%% MSA AVERAGING FUNCTION
 
+def average_passengers(
+    combined_dict_previous,
+    combined_dict_new,
+    iteration
+):
 
-def average_passengers(combined_dict, combined_dict_new, paths_per_hour):
-    #Create combined_dict_iteration
     combined_dict_iteration = {}
-    paths_per_hour_iteration = paths_per_hour
 
-    for interval in combined_dict:
-        # Copiamos toda la estructura del primer diccionario
-        combined_dict_iteration[interval] = combined_dict[interval].copy()
+    # MSA step size
+    alpha = 1.0 / iteration
 
-        # Sacamos los valores de crowding y demand_prob_product
-        crowding_1 = combined_dict[interval].get('crowding_in_veh', [])
-        crowding_2 = combined_dict_new[interval].get('crowding_in_veh', [])
-        demand_1 = combined_dict[interval].get('demand_prob_product', [])
-        demand_2 = combined_dict_new[interval].get('demand_prob_product', [])
-        
-        demand_1_gr2 = combined_dict[interval].get('demand_prob_product_2', [])
-        demand_2_gr2 = combined_dict_new[interval].get('demand_prob_product_2', [])
+    for interval in combined_dict_previous:
 
-        # Calculamos el promedio elemento a elemento
-        avg_crowding = [(a + b) / 2 for a, b in zip(crowding_1, crowding_2)]
-        avg_demand = [(a + b) / 2 for a, b in zip(demand_1, demand_2)]
-        
-        avg_demand_2 = [(a + b) / 2 for a, b in zip(demand_1_gr2, demand_2_gr2)]
+        combined_dict_iteration[interval] = copy.deepcopy(
+            combined_dict_previous[interval]
+        )
 
-        # Actualizamos los valores en el nuevo diccionario
-        combined_dict_iteration[interval]['crowding_in_veh'] = avg_crowding
-        combined_dict_iteration[interval]['demand_prob_product'] = avg_demand
-        combined_dict_iteration[interval]['demand_prob_product_2'] = avg_demand_2
-        
+        # Previous iteration
+        crowding_previous = combined_dict_previous[interval].get(
+            'crowding_in_veh', []
+        )
+
+        demand_previous = combined_dict_previous[interval].get(
+            'demand_prob_product', []
+        )
+
+        demand_previous_g2 = combined_dict_previous[interval].get(
+            'demand_prob_product_2', []
+        )
+
+        # Newly calculated values
+        crowding_new = combined_dict_new[interval].get(
+            'crowding_in_veh', []
+        )
+
+        demand_new = combined_dict_new[interval].get(
+            'demand_prob_product', []
+        )
+
+        demand_new_g2 = combined_dict_new[interval].get(
+            'demand_prob_product_2', []
+        )
+
+        # MSA update
+        avg_crowding = [
+            old + alpha * (new - old)
+            for old, new
+            in zip(crowding_previous, crowding_new)
+        ]
+
+        avg_demand = [
+            old + alpha * (new - old)
+            for old, new
+            in zip(demand_previous, demand_new)
+        ]
+
+        avg_demand_g2 = [
+            old + alpha * (new - old)
+            for old, new
+            in zip(demand_previous_g2, demand_new_g2)
+        ]
+
+        combined_dict_iteration[interval][
+            'crowding_in_veh'
+        ] = avg_crowding
+
+        combined_dict_iteration[interval][
+            'demand_prob_product'
+        ] = avg_demand
+
+        combined_dict_iteration[interval][
+            'demand_prob_product_2'
+        ] = avg_demand_g2
+
     return combined_dict_iteration
 
    
@@ -1375,12 +1874,23 @@ while not converged and iteration_counter < max_iterations:
     # Paso 5: Inicializar el diccionario para la siguiente iteración
     combined_dict_msa_it = copy.deepcopy(combined_dict_new)
 
-    # Paso 6: Reajustar 'crowding_in_veh' y 'demand_prob_product' a cero
+    # Paso 6: Reset values before new assignment
     for key, value in combined_dict_msa_it.items():
+    
         if 'crowding_in_veh' in value:
-            value['crowding_in_veh'] = [0.0] * len(value['crowding_in_veh']) 
+            value['crowding_in_veh'] = (
+                [0.0] * len(value['crowding_in_veh'])
+            )
+    
         if 'demand_prob_product' in value:
-            value['demand_prob_product'] = [0.0] * len(value['demand_prob_product'])
+            value['demand_prob_product'] = (
+                [0.0] * len(value['demand_prob_product'])
+            )
+    
+        if 'demand_prob_product_2' in value:
+            value['demand_prob_product_2'] = (
+                [0.0] * len(value['demand_prob_product_2'])
+            )
 
     # Paso 7: Calcular 'crowding_in_veh' para cada ruta
     for hour, values in combined_dict_msa_it.items():
@@ -1433,8 +1943,12 @@ while not converged and iteration_counter < max_iterations:
         if key in demand_prob_product_msa_it_2:
             value['demand_prob_product_2'] = demand_prob_product_msa_it_2[key]
 
-    # Paso 10: Promediar los pasajeros de la nueva iteración
-    combined_new_iteration = average_passengers(combined_dict_msa, combined_dict_msa_it, paths_per_hour)
+    # Paso 10: Aplicar actualización MSA
+    combined_new_iteration = average_passengers(
+        combined_dict_msa,
+        combined_dict_msa_it,
+        iteration_counter
+    )
 
     # Mostrar el 'demand_prob_product' de esta iteración
     print(f"Iteración {iteration_counter} - demand_prob_product:")
@@ -1451,39 +1965,70 @@ while not converged and iteration_counter < max_iterations:
     for key in combined_dict_msa:
         print(f"  {key}: {combined_dict_msa[key]['gen_travel_cost']}")
 
+    # Paso 10: Aplicar actualización MSA
+    combined_new_iteration = average_passengers(
+        combined_dict_msa,
+        combined_dict_msa_it,
+        iteration_counter
+    )
+    
+    
     # Paso 11: Verificación de convergencia
-    converged = True  # Empezamos asumiendo que ha convergido
-
-    for key in combined_dict_msa_it:
+    converged = True
+    
+    for key in combined_dict_msa:
+    
         if key in combined_new_iteration:
-            prev_demand_prob = combined_dict_msa_it[key]['demand_prob_product']
-            new_demand_prob = combined_new_iteration[key]['demand_prob_product']
-            
-            prev_demand_prob_2 = combined_dict_msa_it[key]['demand_prob_product_2']
-            new_demand_prob_2 = combined_new_iteration[key]['demand_prob_product_2']
-
-            # Comparar los productos de demanda entre las iteraciones
-            for prev_val, new_val, prev_val_2, new_val_2  in zip(prev_demand_prob, new_demand_prob, prev_demand_prob_2, new_demand_prob_2):
-                if abs(prev_val - new_val) >= 0.001 and abs(prev_val_2 - new_val_2) >= 0.001:
-                    converged = False  # Si alguna diferencia es mayor o igual a 1.0, no ha convergido
+    
+            prev_demand_prob = (
+                combined_dict_msa[key]['demand_prob_product']
+            )
+            new_demand_prob = (
+                combined_new_iteration[key]['demand_prob_product']
+            )
+    
+            prev_demand_prob_2 = (
+                combined_dict_msa[key]['demand_prob_product_2']
+            )
+            new_demand_prob_2 = (
+                combined_new_iteration[key]['demand_prob_product_2']
+            )
+    
+            for (
+                prev_val,
+                new_val,
+                prev_val_2,
+                new_val_2
+            ) in zip(
+                prev_demand_prob,
+                new_demand_prob,
+                prev_demand_prob_2,
+                new_demand_prob_2
+            ):
+    
+                if (
+                    abs(prev_val - new_val) >= 0.001
+                    or
+                    abs(prev_val_2 - new_val_2) >= 0.001
+                ):
+                    converged = False
                     break
-
+    
         if not converged:
             break
-
-    # Actualizar los diccionarios para la próxima iteración
-    combined_dict = combined_dict_msa
-    combined_dict_new = combined_new_iteration
     
-    combined_dict_msa = average_passengers(combined_dict, combined_dict_new, paths_per_hour)
-
-    # Verificamos si se alcanzó el máximo de iteraciones
+    
+    # Paso 12: Actualizar solución MSA
+    combined_dict_msa = combined_new_iteration
+    
+    
     if iteration_counter == max_iterations and not converged:
-        print(f"🚨 Max number of iterations ({max_iterations}). Convergence not reached.")
+        print(
+            f"🚨 Max number of iterations "
+            f"({max_iterations}). "
+            f"Convergence not reached."
+        )
         break
-
-if converged:
-    print(f"✅ ¡Convergence reached in {iteration_counter} iterations!")
 
 
 #%% CAPACITY FUNCTION 
@@ -1525,7 +2070,10 @@ def max_capacity_combined_dict(combined_dict, starting_lines, unique_start_times
                 demand_initial_platform.loc[row_idx, time] += total_demand
 
     # Definir FullCap
-    line_full_caps = {3: seating_cap[3]['FullCap'], 5: seating_cap[5]['FullCap']}
+    line_full_caps = {
+        line_id: seating_cap[line_id]['FullCap']
+        for line_id in starting_lines
+    }
 
     # Copiar combined_dict para no modificar el original
     combined_dict_capacity = {}
@@ -1627,12 +2175,23 @@ def MSA_Convergence(combined_dict_new, starting_lines, unique_start_times, route
         # Paso 5: Inicializar el diccionario para la siguiente iteración
         combined_dict_msa_it = copy.deepcopy(combined_dict_new)
 
-        # Paso 6: Reajustar 'crowding_in_veh' y 'demand_prob_product' a cero
+        # Paso 6: Reset values before new assignment
         for key, value in combined_dict_msa_it.items():
+        
             if 'crowding_in_veh' in value:
-                value['crowding_in_veh'] = [0.0] * len(value['crowding_in_veh']) 
+                value['crowding_in_veh'] = (
+                    [0.0] * len(value['crowding_in_veh'])
+                )
+        
             if 'demand_prob_product' in value:
-                value['demand_prob_product'] = [0.0] * len(value['demand_prob_product'])
+                value['demand_prob_product'] = (
+                    [0.0] * len(value['demand_prob_product'])
+                )
+        
+            if 'demand_prob_product_2' in value:
+                value['demand_prob_product_2'] = (
+                    [0.0] * len(value['demand_prob_product_2'])
+                )
 
         # Paso 7: Calcular 'crowding_in_veh' para cada ruta
         for hour, values in combined_dict_msa_it.items():
@@ -1684,65 +2243,95 @@ def MSA_Convergence(combined_dict_new, starting_lines, unique_start_times, route
             if key in demand_prob_product_msa_it_2:
                 value['demand_prob_product_2'] = demand_prob_product_msa_it_2[key]
 
-        # Paso 10: Promediar los pasajeros de la nueva iteración
-        combined_new_iteration = average_passengers(combined_dict_msa, combined_dict_msa_it, paths_per_hour)
-
-        # # Mostrar el 'demand_prob_product' de esta iteración
-        # print(f"Iteración {iteration_counter} - demand_prob_product:")
-        # for key in combined_dict_msa:
-        #     print(f"  {key}: {combined_dict_msa[key]['demand_prob_product']}")
-
-        # # Mostrar el 'crowding_in_veh' de esta iteración
-        # print(f"Iteración {iteration_counter} - crowding_in_veh:")
-        # for key in combined_dict_msa:
-        #     print(f"  {key}: {combined_dict_msa[key]['crowding_in_veh']}")
-
-        # # Mostrar el 'crowding_in_veh' de esta iteración
-        # print(f"Iteración {iteration_counter} - gen_travel_cost:")
-        # for key in combined_dict_msa:
-        #     print(f"  {key}: {combined_dict_msa[key]['gen_travel_cost']}")
-
+        # Paso 10: Aplicar actualización MSA
+        combined_new_iteration = average_passengers(
+            combined_dict_msa,
+            combined_dict_msa_it,
+            iteration_counter
+        )
+        
+        
         # Paso 11: Verificación de convergencia
-        converged = True  # Empezamos asumiendo que ha convergido
-
-        for key in combined_dict_msa_it:
+        converged = True
+        
+        for key in combined_dict_msa:
+        
             if key in combined_new_iteration:
-                prev_demand_prob = combined_dict_msa_it[key]['demand_prob_product']
-                new_demand_prob = combined_new_iteration[key]['demand_prob_product']
-                
-                prev_demand_prob_2 = combined_dict_msa_it[key]['demand_prob_product_2']
-                new_demand_prob_2 = combined_new_iteration[key]['demand_prob_product_2']
-
-                # Comparar los productos de demanda entre las iteraciones
-                for prev_val, new_val, prev_val_2, new_val_2 in zip(prev_demand_prob, new_demand_prob, prev_demand_prob_2, new_demand_prob_2):
-                    if abs(prev_val - new_val) >= convergence_threshold and abs(prev_val_2 - new_val_2) >= convergence_threshold :
-                        converged = False  # Si alguna diferencia es mayor o igual al umbral, no ha convergido
+        
+                prev_demand_prob = (
+                    combined_dict_msa[key]['demand_prob_product']
+                )
+                new_demand_prob = (
+                    combined_new_iteration[key]['demand_prob_product']
+                )
+        
+                prev_demand_prob_2 = (
+                    combined_dict_msa[key]['demand_prob_product_2']
+                )
+                new_demand_prob_2 = (
+                    combined_new_iteration[key]['demand_prob_product_2']
+                )
+        
+                for (
+                    prev_val,
+                    new_val,
+                    prev_val_2,
+                    new_val_2
+                ) in zip(
+                    prev_demand_prob,
+                    new_demand_prob,
+                    prev_demand_prob_2,
+                    new_demand_prob_2
+                ):
+        
+                    if (
+                        abs(prev_val - new_val) >= convergence_threshold
+                        or
+                        abs(prev_val_2 - new_val_2) >= convergence_threshold
+                    ):
+                        converged = False
                         break
-
+        
             if not converged:
                 break
+        
+        
+        # Paso 12: Actualizar solución MSA
+        combined_dict_msa = combined_new_iteration
 
-        # Actualizar los diccionarios para la próxima iteración
-        combined_dict = combined_dict_msa
-        combined_dict_new = combined_new_iteration
-
-        # Verificamos si se alcanzó el máximo de iteraciones
         if iteration_counter == max_iterations and not converged:
-            print(f"🚨 Max number of iterations ({max_iterations}). Convergence not reached.")
+            print(
+                f"🚨 Max number of iterations "
+                f"({max_iterations}). "
+                f"Convergence not reached."
+            )
             break
 
     if converged:
-        print(f"✅ ¡Convergence of MSA FUNCTION reached in {iteration_counter} iterations!")
+        print(
+            f"✅ Convergence of MSA FUNCTION reached "
+            f"in {iteration_counter} iterations!"
+        )
 
     return combined_dict_msa, sim_cost_for_overcrowding
 
+# Ejecutar MSA
+combined_dict_msa, msa_cost_for_overcrowding = MSA_Convergence(
+    combined_dict_new,
+    starting_lines,
+    unique_start_times,
+    route_summary_lines,
+    lines_data,
+    paths_per_hour,
+    seating_cap,
+    LineTimeCSV,
+    ConW,
+    demand_by_interval,
+    demand_by_interval_2,
+    max_iterations=25,
+    convergence_threshold=0.05
+)
 
-combined_dict_msa, msa_cost_for_overcrowding = MSA_Convergence(combined_dict_new, starting_lines, unique_start_times, route_summary_lines, lines_data, paths_per_hour, seating_cap, LineTimeCSV, ConW, demand_by_interval, demand_by_interval_2, max_iterations=25, convergence_threshold=0.05)
-
-# print(" ")
-# print("combineed_dict_msa")
-# print(combined_dict_msa)
-# print(" ")
 
 #%% FUNCTION TO COMPUTE GENERALIZED COST - PASSENGER COST
 #input combined_dict_msa
@@ -1946,7 +2535,7 @@ def create_demand_summary(combined_dict):
     demand_summary_simulation = {}
     
     # Asumimos que las rutas son siempre las mismas
-    rutas = ['route_1', 'route_2', 'route_3', 'route_4', 'route_5', 'route_6']
+    rutas = list(route_summary_lines.keys())
     
     # Inicializamos cada ruta
     for ruta in rutas:
@@ -2217,67 +2806,219 @@ def objective_function(start_times, headway_list):
     return cplex_total_cost, demand_summary_dict, combined_dict_new_opt, demand_check_g1g2
 
 
-#%% OPTUNA TRIALS
+#%% OPTUNA OPTIMIZATION
 
+# Store results from all trials
 all_trials_results = []
 
+# ------------------------------------------------------------------
+# OPTUNA PARAMETERS
+# ------------------------------------------------------------------
+
+START_TIME_MIN = 0
+START_TIME_MAX = 20
+
+HEADWAY_MIN = 5
+HEADWAY_MAX = 20
+
+N_TRIALS = 50
+
+
+# ------------------------------------------------------------------
+# SAFETY CHECK
+# ------------------------------------------------------------------
+# Current objective_function uses lists indexed by line_id,
+# therefore line IDs must currently be consecutive: 0, 1, 2, ...
+
+expected_line_ids = list(range(len(line_ids)))
+
+if line_ids != expected_line_ids:
+    raise ValueError(
+        "Current optimization structure requires consecutive line IDs "
+        f"starting at 0. Found: {line_ids}"
+    )
+
+
+# ------------------------------------------------------------------
+# OPTUNA OBJECTIVE
+# ------------------------------------------------------------------
+
 def optuna_objective(trial):
-    
-    # Range of values for start_times 0-20
-    start_times = [trial.suggest_int(f"start_{i}", 0, 20) for i in range(6)]
-    print("start_times: ")
-    print(start_times)
-    
-    # Range of values for headway 5-20
-    headway_list = [trial.suggest_int(f"headway_{i}", 5, 20) for i in range(6)]
-    print("headway_list: ")
-    print(headway_list)
-    print("--- start trial ")
+
+    # --------------------------------------------------------------
+    # Decision variable 1: start time of each line
+    # --------------------------------------------------------------
+
+    start_times = [
+        trial.suggest_int(
+            f"start_{line_id}",
+            START_TIME_MIN,
+            START_TIME_MAX
+        )
+        for line_id in line_ids
+    ]
+
+    print("\n----------------------------------------")
+    print(f"Trial {trial.number}")
+    print("Start times:", start_times)
+
+
+    # --------------------------------------------------------------
+    # Decision variable 2: headway of each line
+    # --------------------------------------------------------------
+
+    headway_list = [
+        trial.suggest_int(
+            f"headway_{line_id}",
+            HEADWAY_MIN,
+            HEADWAY_MAX
+        )
+        for line_id in line_ids
+    ]
+
+    print("Headways:", headway_list)
+    print("----------------------------------------")
+
+
+    # --------------------------------------------------------------
+    # Evaluate solution
+    # --------------------------------------------------------------
+
     try:
-        cost, demand_sum_dict_TRA, combined_dict_new_opt_TRA, demand_check_g1g2_TRA  = objective_function(start_times, headway_list)
-        print("the cost for the trial is")
-        print(cost)
-        print("end trial------------------------------------------------------------------------")
-        print(" ########### ")
+
+        (
+            cost,
+            demand_sum_dict_TRA,
+            combined_dict_new_opt_TRA,
+            demand_check_g1g2_TRA
+        ) = objective_function(
+            start_times,
+            headway_list
+        )
+
+        cost = float(cost)
+
+        print(f"Trial {trial.number} cost: {cost:.4f}")
+
+
     except Exception as e:
-        print(f"[ERROR] La simulación falló con: {e}")
-        cost = float('inf')
-    
-    # Guardar resultados del trial
-    all_trials_results.append({
+
+        print(
+            f"[ERROR] Trial {trial.number} failed: {e}"
+        )
+
+        cost = float("inf")
+
+        demand_sum_dict_TRA = None
+        combined_dict_new_opt_TRA = None
+        demand_check_g1g2_TRA = None
+
+
+    # --------------------------------------------------------------
+    # Save trial results
+    # --------------------------------------------------------------
+
+    trial_result = {
         "trial_number": trial.number,
-        "start_times": start_times,
-        "headway_list": headway_list,
-        "cost": cost,
-        })
-    
+        "cost": cost
+    }
+
+    # Add start times individually
+    for line_id, start in zip(
+        line_ids,
+        start_times
+    ):
+        trial_result[
+            f"start_{line_id}"
+        ] = start
+
+    # Add headways individually
+    for line_id, headway in zip(
+        line_ids,
+        headway_list
+    ):
+        trial_result[
+            f"headway_{line_id}"
+        ] = headway
+
+    # Demand conservation check
+    trial_result[
+        "assigned_demand"
+    ] = demand_check_g1g2_TRA
+
+    all_trials_results.append(
+        trial_result
+    )
+
     return cost
 
 
 
-# Crear el estudio
-study = optuna.create_study(direction="minimize")
+#%% CREATE OPTUNA STUDY
 
-# Ejecutar optimización (puedes probar con menos al principio)
-study.optimize(optuna_objective, n_trials = 50)
+study = optuna.create_study(
+    direction="minimize"
+)
 
-# Mostrar resultados
-print("🔍 Best combination found:")
-print("Mininum cost:", study.best_value)
-print("Optimal Parameters:")
+
+#%% RUN OPTIMIZATION
+
+study.optimize(
+    optuna_objective,
+    n_trials=N_TRIALS
+)
+
+
+#%% OPTUNA RESULTS
+
+print("\n========================================")
+print("OPTUNA OPTIMIZATION COMPLETED")
+print("========================================")
+
+print(
+    f"Best objective value: "
+    f"{study.best_value:.4f}"
+)
+
+print("\nOptimal parameters:")
+
 for key, value in study.best_params.items():
-    print(f"{key}: {value}")
+    print(
+        f"{key}: {value}"
+    )
 
-TRA_df_trials = pd.DataFrame(all_trials_results)
 
-# Extraer listas
-best_start_times = [study.best_params[f"start_{i}"] for i in range(6)]
-best_headway_list = [study.best_params[f"headway_{i}"] for i in range(6)]
+#%% BEST SOLUTION
 
-# print("OPTIMIZATION OPTUNA ENDS HERE -----------------------------------------------------------")
+best_start_times = [
+    study.best_params[
+        f"start_{line_id}"
+    ]
+    for line_id in line_ids
+]
 
-# test_start_times = [0, 0, 0, 18, 0, 12]
-# test_headway_list = [20, 20, 20, 18, 20, 18]
+best_headway_list = [
+    study.best_params[
+        f"headway_{line_id}"
+    ]
+    for line_id in line_ids
+]
 
-# TRA_cost, TRA_demand_split, TRA_combined_d, demand_check_g1g2 = objective_function(test_start_times, test_headway_list)
-# TRA_demand_dataframe = pd.DataFrame(ewgt_demand_split)
+
+print("\nBest start times:")
+print(best_start_times)
+
+print("\nBest headways:")
+print(best_headway_list)
+
+
+#%% TRIAL RESULTS DATAFRAME
+
+TRA_df_trials = pd.DataFrame(
+    all_trials_results
+)
+
+print("\nNumber of completed trials:")
+print(len(TRA_df_trials))
+
+
