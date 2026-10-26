@@ -1,4 +1,4 @@
-#This code replicates the Ntework Reading data structure
+#This code is the Toolkit for NO
 
 import os
 import csv
@@ -311,9 +311,9 @@ print(f"Frequency-based lines: {frequency_line_ids}")
 
 
 
-#%% Define Lines Perception Factors
+#%% Define Line Perception Factors
 
-#in-veh perception factors
+#In-vehicle perception factors
 perception_factors = {
     'Bus': InVBusW,
     'Train': InVTrainW,
@@ -345,7 +345,7 @@ for row in range (0,Linestotal,1):
     stop_list = []
     for col in LineStopCSV.columns[1:]:
         stop = LineStopCSV.iloc[row][col]
-        if pd.notna(stop):  # Iggnored values NaN
+        if pd.notna(stop):  #Ignore NaN values
             stop_list.append(int(stop))
             Stops_dict[f"StopLine{lineid}"] = stop_list       
             exec(f"Stops_list{lineid}= stop_list")
@@ -686,9 +686,9 @@ print(
 
 #%% G PATHS MERGE
 
-#generar las rutas por hora
+#Generate routes by time
 
-#definie cicle to generate list as g_paths_merge
+#Define a loop to generate a list like g_paths_merge
 count_elements = len(g_paths_merge)
 g_paths_merge_time=[]
 for e in range(count_elements):
@@ -701,7 +701,7 @@ for e in range(count_elements):
         lista_temp_b.append(time_value)
     g_paths_merge_time.append(lista_temp_b)
 
-#%% create a disctionary of routes contained in g_paths_merge conatining in-veh-travel time and gne-in-veh-travel time
+#Create a dictionary of routes in g_paths_merge containing in-vehicle travel time and generalized in-vehicle travel time
 
 in_veh_perc = {}
 
@@ -716,7 +716,7 @@ for idx, path in enumerate(g_paths_merge):
 routes_dicts = {}  # This dictionary will store all the route dictionaries.
 
 for i, (route, travel_times) in enumerate(zip(g_paths_merge, g_paths_merge_time), start=1):
-    route_dict = {}  # Este diccionario almacenará las lineas de esta ruta
+    route_dict = {}  #This dictionary will store the lines of this route
     for line_id, travel_time in zip(route, travel_times):
         timetable = timetables_list[line_id]  
         route_dict[line_id] = {
@@ -730,17 +730,17 @@ for i, (route, travel_times) in enumerate(zip(g_paths_merge, g_paths_merge_time)
 #Add the In-veh cost
 for route_key, route_dict in routes_dicts.items():  # Iterate over each route in routes_dicts.
     for line_id, line_info in route_dict.items():  # Iterate over each line in the route.
-        # Obtener el GenCostTravel de lines_type usando line_id
-        gen_cost_travel = lines_type.get(line_id, {}).get('GenCostInVeh', 0)  # Default 0 si no se encuentra
+        #Get GenCostTravel from lines_type using line_id
+        gen_cost_travel = lines_type.get(line_id, {}).get('GenCostInVeh', 0)  #Default to 0 if not found
         
-        # Agregar GenCostTravel al diccionario de la línea
+        #Add GenCostTravel to the line dictionary
         route_dict[line_id]['GenCostInVeh'] = gen_cost_travel
 
     # Save dictionary using routes_dicts
     routes_dicts[route_key] = route_dict
 
 #%% Next Step
-#function to compute 
+#Function to compute
 def calculate_route_times(routes_dict, route_sequence):
     result = {}
 
@@ -784,7 +784,7 @@ def calculate_route_times(routes_dict, route_sequence):
     return result
 
 
-#%% PATHS PER HOUR INITIATE
+#%% INITIALIZE PATHS PER HOUR
 # Generate paths_per_hour by calling the function to calculate the route times.
 paths_per_hour = {}
 numb_choices = len(g_paths_merge)
@@ -796,7 +796,7 @@ for i in range(numb_choices):
     route_times_result = calculate_route_times(dict_of_route, sequ_of_route)
     paths_per_hour[route_key] = route_times_result
 
-# Eliminate elements form paths_per_hour that end after 120!
+#Eliminate entries from paths_per_hour that end after 120
     
 for route, departures in paths_per_hour.items():
     keys_to_delete = []
@@ -836,7 +836,7 @@ interval_data = {i: {'available_routes': 0, 'demand': 0} for i in intervals}
 # Count how many routes are available in each interval.
 for route, times in durations.items():
     for start_time, duration_info in times.items():
-        # Encontramos el intervalo más cercano a start_time
+        #Find the interval closest to start_time
         closest_interval = max([i for i in intervals if i <= start_time], default=None)
         
         if closest_interval is not None:
@@ -984,7 +984,7 @@ waiting_passengers = 0
 last_demand_time = None
 for index, row in demand_data_frame.iterrows():
     if row["Demand_cumulated"] > 0:
-        # Si la demanda acumulada es mayor a 0, guardamos el tiempo
+        #If accumulated demand is greater than 0, save the time
         last_demand_time = row["Time"]
         demand_data_frame.at[index, "Waiting_time"] = 0  # The waiting time is 0 as long as there is accumulated demand.
     else:
@@ -1003,11 +1003,11 @@ print(" ")
 print ("Partial Waiting Time Cumulated:",partial_waiting_time)
 print(" ")
 
-#%% PATH COST (real time of route) - to be used for compute probailities initially
+#%% PATH COST (actual route time) - initially used to compute probabilities
 
-#Before compute path cost
+#Before computing path cost
 
-## No. 1 First Stop Wiaiting Time
+### No. 1 First-stop waiting time
 # computed before in demand_data_frame
 
 ## No. 2 Number of transfers using g_paths_merge
@@ -1022,7 +1022,7 @@ print(" ")
 print("Tranfer Penalty by route: ",route_transfer_penalty)
 print(" ")
 
-## No. 3 In-veh percived time
+### No. 3 Perceived in-vehicle time
 route_inveh_perc = {}
 
 for i, ruta in enumerate(g_paths_merge, start=1):
@@ -1035,7 +1035,7 @@ print(" ")
 
 ## No. 4 Waiting time in between stops
 
-#Compute Path cost for probailities
+#Compute path costs for probabilities
 path_cost={}
 n_paths_merge=len(g_paths_merge)
 for route in route_inveh_perc:
@@ -1056,11 +1056,11 @@ for key, value in combined_dict.items():
 
 #   
 for key, value in combined_dict.items():
-    # Restar elemento a elemento durations - in_veh_time
+    #Subtract in_veh_time from durations element by element
     waiting_time_list = [d - i for d, i in zip(value['durations'], value['in_veh_time'])]
-    combined_dict[key]['waiting_time'] = waiting_time_list  # Agregar la lista
+    combined_dict[key]['waiting_time'] = waiting_time_list  #Add the list
 
-#Modify combined_dict adding gen_travel_cost to combined dict
+#Modify combined_dict by adding gen_travel_cost
 for time_slot, data in combined_dict.items():
     gen_travel_cost = []
     for i, route in enumerate(data['routes']):
@@ -1102,7 +1102,7 @@ print(" ")
 
 #%% MODIFY COMBINED DICT
 
-#Compute probailities of available routes USING DURATION OF ROUTE
+#Compute probabilities of available routes using route duration
 
 # for demand
 probabilities = {}
@@ -1120,7 +1120,7 @@ for key, value in combined_dict.items():
     # Normalize to obtain probabilities (logit model).
     total_exp = np.sum(exp_neg_costs)
     if total_exp == 0:
-        total_exp = 1e-10  # Evitar división por cero
+        total_exp = 1e-10  #Avoid division by zero
 
     probs = exp_neg_costs / total_exp
 
@@ -1135,20 +1135,20 @@ for key, value in combined_dict.items():
     gen_travel_costs_2 = np.array(value['gen_travel_cost_2'])
     #crowding_costs = np.array(value['crowding_in_veh'])
 
-    # Nuevo costo combinado
+    #New combined cost
     total_costs = gen_travel_costs_2
 
-    # Calcular exponencial negativa de los costos
+    #Calculate the negative exponential of the costs
     exp_neg_costs = np.exp(-total_costs)
 
-    # Normalizar para obtener probabilidades (modelo logit)
+    #Normalize to obtain probabilities (logit model)
     total_exp = np.sum(exp_neg_costs)
     if total_exp == 0:
-        total_exp = 1e-10  # Evitar división por cero
+        total_exp = 1e-10  #Avoid division by zero
 
     probs = exp_neg_costs / total_exp
 
-    # Asociar cada ruta con su probabilidad
+    #Associate each route with its probability
     routes = value['routes']
     probabilities_2[key] = {route: float(probs[i]) for i, route in enumerate(routes)}
 
@@ -1160,7 +1160,7 @@ print("Probabilities 2: ")
 print(probabilities_2)
 print(" ")
     
-#merge combided_dict and probabilities in dictionario new
+#Merge combined_dict and probabilities into a new dictionary
 passenger_route = {}
 passenger_route_2 = {}
 
@@ -1223,7 +1223,7 @@ for key, demand in demand_by_interval_2.items():
 for key, value in combined_dict.items():
     # Check if a list of demand * probability products exists for this interval in probability_demand_product.
     if key in probability_demand_product:
-        # Agregar la lista de productos a combined_dict bajo la clave 'demand_prob_product'
+        #Add the product list to combined_dict under the 'demand_prob_product' key
         value['demand_prob_product'] = probability_demand_product[key]
 
 # for demand_2
@@ -1244,7 +1244,7 @@ for key, value in combined_dict.items():
 
 
 #%%
-## objective function: passengres
+### Objective function: passengers
 total_travelcost_routes = 0.0  # <- Accumulator variable
 
 # Iterate over each time interval in combined_dict.
@@ -1255,7 +1255,7 @@ for key, value in combined_dict.items():
     
     # If both lists exist and have the same length.
     if len(demand_prob_product) == len(gen_travel_cost):
-        # Calcular la suma de los productos para la función objetivo en este intervalo
+        #Calculate the sum of the products for the objective function in this interval
         partial_sum = sum(d * g for d, g in zip(demand_prob_product, gen_travel_cost))
         
         #  Add the result to the overall total.
@@ -1265,7 +1265,7 @@ print(" ")
 print ("General travel time by route (demand x route Times):",total_travelcost_routes)
 print(" ")
 
-#%% compute waiting time - BODEFORE BOARDING
+#%% Compute waiting time before boarding
 #COMPUTE CUMULATED WAITING TIME
 demand_data_frame = pd.DataFrame(list(demand_by_interval.items()), columns=["Time", "Demand_cumulated"])
 
@@ -1278,7 +1278,7 @@ waiting_passengers = 0
 last_demand_time = None
 for index, row in demand_data_frame.iterrows():
     if row["Demand_cumulated"] > 0:
-        # Si la demanda acumulada es mayor a 0, guardamos el tiempo
+        #If accumulated demand is greater than 0, save the time
         last_demand_time = row["Time"]
         demand_data_frame.at[index, "Waiting_time"] = 0  # The waiting time is 0 as long as there is accumulated demand.
     else:
@@ -1297,7 +1297,7 @@ print(" ")
 print ("Partial Waiting Time Cumulated:",partial_waiting_time)
 print(" ")
 
-#%% fucntions to accumulate demand
+#%% Functions to accumulate demand
 
 def compute_accumulated_demand(demand_dict, unique_start_times):
     unique_start_times = sorted(unique_start_times)
@@ -1306,7 +1306,7 @@ def compute_accumulated_demand(demand_dict, unique_start_times):
     previous_time = 0
     for current_time in unique_start_times:
         total = 0
-        # Acumular solo entre previous_time < t <= current_time
+        #Accumulate only for previous_time < t <= current_time
         for t in range(previous_time + 1, current_time + 1):
             total += demand_dict.get(t, 0)
         accumulated_demand[current_time] = total
@@ -1340,7 +1340,7 @@ print(" ")
 print("Crowding Simulation created ")
 print(" ")
 
-#%% Update Crowding simulation using combined_dict, paths_per_hour, and the dataframestructure crowding_simulation
+#%% Update crowding simulation using combined_dict, paths_per_hour, and the crowding_simulation DataFrame
 
 seating_cap = {}
 
@@ -1381,7 +1381,7 @@ def distribuir_demanda(crowding_simulation, combined_dict, paths_per_hour):
 crowding_lines = distribuir_demanda(crowding_simulation, combined_dict, paths_per_hour)
 
 
-# %% RE-COMPUTE PASSENGERS COST CONSIDERING CORWDING-SEATING
+#%% RECOMPUTE PASSENGER COST CONSIDERING CROWDING AND SEATING
 
 seating_cap = {}
 
@@ -1409,7 +1409,7 @@ non_seating_diff_df = crowding_numeric.copy()
 
 # Subtract the capacity from each row (time columns only).
 for idx, row in non_seating_diff_df.iterrows():
-    line_id = row['LineID']  # Accedemos al LineID directamente
+    line_id = row['LineID']  #Access LineID directly
     cap = seating_cap[line_id]['Cap']  
     non_seating_diff_df.iloc[idx, 2:] = crowding_numeric.iloc[idx, 2:] - cap
 
@@ -1418,13 +1418,13 @@ non_seating_diff_df.iloc[:, 2:] = non_seating_diff_df.iloc[:, 2:].clip(lower=0)
 
 # Update crowding_in_veh using values of crowding_proportion
 
-#this is to compute standing passengers
+#This computes standing passengers
 crowding_seating = crowding_numeric.copy()
 
 for idx in range(2, crowding_numeric.shape[1]):  
     crowding_seating.iloc[:, idx] = crowding_numeric.iloc[:, idx] - non_seating_diff_df.iloc[:, idx]
 
-#%% FUNCION DE COMPUTE non_seating_diff_df
+#%% FUNCTION TO COMPUTE non_seating_diff_df
 
 def compute_non_seating_diff_df(seating_cap, crowding_numeric):
     # Ensure the numeric data is properly formatted.
@@ -1437,7 +1437,7 @@ def compute_non_seating_diff_df(seating_cap, crowding_numeric):
     # Subtract the seating capacity from each row (time columns only).
     for idx, row in non_seating_diff_df.iterrows():
         line_id = row['LineID']
-        cap = seating_cap.get(line_id, {}).get('Cap', 0)  # Evitar errores si falta LineID
+        cap = seating_cap.get(line_id, {}).get('Cap', 0)  #Avoid errors if LineID is missing
         non_seating_diff_df.iloc[idx, 2:] = crowding_numeric.iloc[idx, 2:] - cap
 
     # Replace negative values with 0 (standing passengers only).
@@ -1449,7 +1449,7 @@ def compute_non_seating_diff_df(seating_cap, crowding_numeric):
 #%% CROWDING PROPORTION
 
 # Update paths_per_hour_it 
-# for cosndeirng the crowding_proportion based on dataframes non_seating_diff_df / crowding_numeric
+#Consider crowding_proportion based on the DataFrames non_seating_diff_df / crowding_numeric
 
 # Ensure the data is of type float64 to avoid type-related issues.
 crowding_numeric.iloc[:, 2:] = crowding_numeric.iloc[:, 2:].astype('float64')
@@ -1471,33 +1471,33 @@ for row in crowding_proportion.index:
 
 
 def compute_crowding_proportion(crowding_numeric, non_seating_diff_df, crowding_simulation_empty):
-    # Copia para no modificar los originales
+    #Make a copy to avoid modifying the originals
     crowding_proportion = crowding_simulation_empty.copy()
 
-    # Asegurar que los datos sean numéricos
+    #Ensure the data is numeric
     crowding_numeric.iloc[:, 2:] = crowding_numeric.iloc[:, 2:].apply(pd.to_numeric, errors='coerce')
     non_seating_diff_df.iloc[:, 2:] = non_seating_diff_df.iloc[:, 2:].apply(pd.to_numeric, errors='coerce')
 
-    # Recorre fila por fila y columna por columna desde la tercera
+    #Iterate row by row and column by column, starting from the third column
     for row in crowding_proportion.index:
         for col in crowding_proportion.columns[2:]:
             numerator = non_seating_diff_df.at[row, col]
             denominator = crowding_numeric.at[row, col]
 
-            # Si el denominador es 0, asignamos 0.0
+            #If the denominator is 0, assign 0.0
             if denominator == 0:
                 crowding_proportion.at[row, col] = 0.0
             else:
-                # Realizamos la división
+                #Perform the division
                 crowding_proportion.at[row, col] = numerator / denominator
 
     return crowding_proportion
 
 # # At this point we have: --------------------------------------------------------------------
 # # Total passengers on board  saved on      crowding_numeric
-# # Paseengers seating         saved on      crowding_seating
+## Seated passengers saved in crowding_seating
 # # Passengers standing        saved on      non_seating_diff_df
-# # Porportion of passengers standing on     crowding_proportion
+## Proportion of standing passengers saved in crowding_proportion
 # # At this point we have: --------------------------------------------------------------------
 
 # #%% Add crowding_value for each line in paths_per_hour_it
@@ -1507,16 +1507,16 @@ paths_per_hour_it = copy.deepcopy(paths_per_hour)
 
 for route, times in paths_per_hour_it.items():
     for departure_time, trips in times.items():
-        # Recorremos cada uno de los viajes (trips) en esa ruta y hora de salida
+        #Iterate over each trip in this route at the given departure time
         for trip in trips:
-            line_id = trip['line']  # Obtenemos el ID de la línea
-            # Accedemos al valor correspondiente de crowding_proportion usando line_id y departure_time
+            line_id = trip['line']  #Get the line ID
+            #Access the corresponding crowding_proportion value using line_id and departure_time
             crowding_value = crowding_proportion.loc[crowding_proportion['LineID'] == line_id, departure_time].values
             if crowding_value.size > 0:
-                # Asignamos el valor de crowding_value al diccionario en paths_per_hour
+                #Assign crowding_value to the dictionary in paths_per_hour
                 trip['crowding_value'] = float(crowding_value[0])
             else:
-                # Si no se encuentra un valor, asignamos 0.0
+                #If no value is found, assign 0.0
                 trip['crowding_value'] = float(0.0)
 
 def update_paths_with_crowding(paths_per_hour, crowding_proportion):
@@ -1554,31 +1554,31 @@ for key, value in combined_dict.items():
 for hour, values in combined_dict_new.items():
     crowding_in_veh = []
     
-    # Para cada ruta dentro de hour
+    #For each route within hour
     for route in values['routes']:
         total_crowding = 0
         for entry in paths_per_hour_it[route][hour]:
             line_id = entry['line']
             crowding_value = entry['crowding_value']     
-            # Obtenemos el travel_time de la línea correspondiente desde LinesTimeCSV
+            #Get the travel time of the corresponding line from LineTimeCSV
             travel_time = LineTimeCSV.loc[LineTimeCSV['lineID'] == line_id, 'Time'].values[0]
             
-            # Calculamos el nuevo valor de crowding_in_veh
+            #Calculate the updated crowding_in_veh value
             updated_crowding = float(crowding_value * ConW)
             total_crowding += updated_crowding
         
-        # Añadimos el total de crowding calculado por ruta al diccionario
+        #Add the calculated total crowding for this route to the dictionary
         crowding_in_veh.append(total_crowding)
     
-    # Actualizamos el diccionario con el nuevo valor de crowding_in_veh
+    #Update the dictionary with the new crowding_in_veh value
     combined_dict_new[hour] = {
         'durations': values['durations'],
         'routes': values['routes'],
         'in_veh_time': values['in_veh_time'],
         'waiting_time': values['waiting_time'],
-        'gen_travel_cost': values['gen_travel_cost'],  # Permanece igual
-        'gen_travel_cost_2': values['gen_travel_cost_2'],  # Permanece igual
-        'crowding_in_veh': crowding_in_veh,  # Se actualiza
+        'gen_travel_cost': values['gen_travel_cost'],  #Unchanged
+        'gen_travel_cost_2': values['gen_travel_cost_2'],  #Unchanged
+        'crowding_in_veh': crowding_in_veh,  #Updated
         'demand_prob_product': values['demand_prob_product'],
         'demand_prob_product_2': values['demand_prob_product_2']
     }
@@ -1587,26 +1587,26 @@ for hour, values in combined_dict_new.items():
 ## Recompute probabilities for combined_dict_it
 probabilities_it = {}
 
-# Calcular probabilidades de las rutas utilizando la duración de la ruta, el nuevo crowding_in_veh y gen_travel_cost
+#Calculate route probabilities using route duration, the new crowding_in_veh, and gen_travel_cost
 for key, value in combined_dict_new.items():
-    # Obtener los costos de viaje y los nuevos valores de crowding_in_veh
+    #Get travel costs and the new crowding_in_veh values
     gen_travel_cost_it = np.array(value['gen_travel_cost'])
     crowding_costs_it = np.array(value['crowding_in_veh'])
 
-    # Calcular el costo total para cada ruta (costos generados + crowding)
+    #Calculate the total cost for each route (generated costs + crowding)
     total_cost_it = gen_travel_cost_it + crowding_costs_it
 
-    # Calcular la exponencial negativa de los costos
+    #Calculate the negative exponential of the costs
     exp_neg_costs_it = np.exp(-total_cost_it)
 
-    # Normalizar para obtener las probabilidades (modelo logit)
+    #Normalize to obtain probabilities (logit model)
     total_exp_it = np.sum(exp_neg_costs_it)
     if total_exp_it == 0:
-        total_exp_it = 1e-10  # Evitar división por cero
+        total_exp_it = 1e-10  #Avoid division by zero
 
     probs_it = exp_neg_costs_it / total_exp_it
 
-    # Asociar cada ruta con su probabilidad
+    #Associate each route with its probability
     routes_it = value['routes']
     probabilities_it[key] = {route: float(probs_it[i]) for i, route in enumerate(routes_it)}
 
@@ -1618,26 +1618,26 @@ def calculate_route_probabilities(combined_dict_input):
         gen_travel_cost_it = np.array(value['gen_travel_cost'])
         crowding_costs_it = np.array(value['crowding_in_veh'])
 
-        # Suma total de costos por ruta
+        #Sum of costs for each route
         total_cost_it = gen_travel_cost_it #+ crowding_costs_it
 
-        # Aplicar función logit (exponencial negativa de los costos)
+        #Apply the logit function (negative exponential of costs)
         exp_neg_costs_it = np.exp(-total_cost_it)
 
-        # Normalización
+        #Normalization
         total_exp_it = np.sum(exp_neg_costs_it)
         if total_exp_it == 0:
-            total_exp_it = 1e-10  # Para evitar división por cero
+            total_exp_it = 1e-10  #Avoid division by zero
 
         probs_it = exp_neg_costs_it / total_exp_it
 
-        # Asociar a cada ruta su probabilidad
+        #Associate each route with its probability
         routes_it = value['routes']
         probabilities[key] = {route: float(probs_it[i]) for i, route in enumerate(routes_it)}
 
     return probabilities
  
-# function for recompute probailities for group demand 2
+#Function to recompute probabilities for demand group 2
 
 def calculate_route_probabilities_2(combined_dict_input):
 
@@ -1668,28 +1668,28 @@ def calculate_route_probabilities_2(combined_dict_input):
 
     return probabilities_2   
  
-# recompute demand_prob_product para combined_dict_new
+#Recompute demand_prob_product for combined_dict_new
 
 #%% Compute demand_prob_product
 
 probability_demand_product_it = {}
 
 for key, demand in demand_by_interval.items():
-    # Verificamos si existe probabilidades para este intervalo en probabilities_it
+    #Check whether probabilities exist for this interval in probabilities_it
     if key in probabilities_it:
-        # Multiplicamos la demanda por la probabilidad de cada ruta
+        #Multiply demand by the probability of each route
         prob_demand_list_it = [
-            demand * prob  # Multiplicamos la demanda por la probabilidad
+            demand * prob  #Multiply demand by the probability
             for route, prob in probabilities_it[key].items()
         ]
-        # Guardamos la lista en el diccionario
+        #Save the list in the dictionary
         probability_demand_product_it[key] = prob_demand_list_it
 
-# Actualizar el combined_dict_it con el nuevo 'demand_prob_product'
+#Update combined_dict_it with the new 'demand_prob_product'
 for key, value in combined_dict_new.items():
-    # Verificar si existe una lista de productos de demanda * probabilidad para este intervalo en probability_demand_product_it
+    #Check whether a demand * probability product list exists for this interval in probability_demand_product_it
     if key in probability_demand_product_it:
-        # Agregar la lista de productos a combined_dict_it bajo la clave 'demand_prob_product'
+        #Add the product list to combined_dict_it under the 'demand_prob_product' key
         value['demand_prob_product'] = probability_demand_product_it[key]
 
 print("DEMAND BY INTERVAL STRUCTURE", demand_by_interval)
@@ -1749,24 +1749,24 @@ def update_demand_prob_product(
 
 
 
-# Finalmente, si necesitas calcular el total travel cost considerando los productos demandados
-total_travelcost_routes_it = 0.0  # Variable acumuladora para el total
+#Finally, calculate total travel cost considering the demand products
+total_travelcost_routes_it = 0.0  #Accumulator variable for the total
 
-# Recorremos cada intervalo de tiempo en combined_dict_it
+#Iterate over each time interval in combined_dict_it
 for key, value in combined_dict_new.items():
-    # Obtener las listas de 'demand_prob_product', 'gen_travel_cost' y 'routes' para este intervalo
+    #Get the 'demand_prob_product', 'gen_travel_cost', and 'routes' lists for this interval
     demand_prob_product_it = value.get('demand_prob_product', [])
     gen_travel_cost_it = value.get('gen_travel_cost', [])
     
-    # Si existen las listas y tienen el mismo tamaño
+    #If the lists exist and have the same length
     if len(demand_prob_product_it) == len(gen_travel_cost_it):
-        # Calcular la suma de los productos para la función objetivo en este intervalo
+        #Calculate the sum of the products for the objective function in this interval
         partial_sum_it = sum(d * g for d, g in zip(demand_prob_product_it, gen_travel_cost_it))
         
-        # Sumar el resultado al total global
+        #Add the result to the overall total
         total_travelcost_routes_it += partial_sum_it
 
-#%%% NOW WE HAVE COMBINED_DICT AND COMBINED_DICT_NEW (afeter crowding)
+#%%% NOW WE HAVE COMBINED_DICT AND COMBINED_DICT_NEW (after crowding)
 #%% MSA AVERAGING FUNCTION
 
 def average_passengers(
@@ -1846,35 +1846,35 @@ def average_passengers(
     return combined_dict_iteration
 
    
-#%% LOOP Mean Successive Average (MSA)  
+#%% LOOP: Method of Successive Averages (MSA)
 
 iteration_counter = 0
-max_iterations = 25  # Definimos el máximo de iteraciones
-converged = False  # Variable de convergencia
+max_iterations = 25  #Define the maximum number of iterations
+converged = False  #Convergence variable
 
-# Paso 1: Promedio de pasajeros para la primera iteracion
+#Step 1: Average passengers for the first iteration
 combined_dict_msa =  combined_dict_new
 
 while not converged and iteration_counter < max_iterations:
     iteration_counter += 1
     
 
-    # Paso 2: Redistribuir la demanda en el dataframe
+    #Step 2: Redistribute demand in the DataFrame
     crowding_table = pd.DataFrame(lines_data)
     crowding_distributed_msa = distribuir_demanda(crowding_table, combined_dict_msa, paths_per_hour)
 
-    # Paso 3: Total de pasajeros a bordo
+    #Step 3: Total passengers on board
     crowding_total = crowding_distributed_msa.copy()
     non_seating_msa = compute_non_seating_diff_df(seating_cap, crowding_total)
     crowding_prop_msa = compute_crowding_proportion(crowding_total, non_seating_msa, crowding_simulation_empty)
 
-    # Paso 4: Actualización de paths_per_hour con el peso de crowding
+    #Step 4: Update paths_per_hour with the crowding weight
     paths_per_hour_msa = update_paths_with_crowding(paths_per_hour, crowding_prop_msa)
 
-    # Paso 5: Inicializar el diccionario para la siguiente iteración
+    #Step 5: Initialize the dictionary for the next iteration
     combined_dict_msa_it = copy.deepcopy(combined_dict_new)
 
-    # Paso 6: Reset values before new assignment
+    # Step 6: Reset values before new assignment
     for key, value in combined_dict_msa_it.items():
     
         if 'crowding_in_veh' in value:
@@ -1892,49 +1892,49 @@ while not converged and iteration_counter < max_iterations:
                 [0.0] * len(value['demand_prob_product_2'])
             )
 
-    # Paso 7: Calcular 'crowding_in_veh' para cada ruta
+    #Step 7: Calculate 'crowding_in_veh' for each route
     for hour, values in combined_dict_msa_it.items():
         crowding_in_veh = []
 
-        # Para cada ruta dentro de 'hour'
+        #For each route within 'hour'
         for route in values['routes']:
             total_crowding = 0
             for entry in paths_per_hour_msa[route][hour]:
                 line_id = entry['line']
                 crowding_value = entry['crowding_value']     
-                # Obtener el tiempo de viaje de la línea correspondiente
+                #Get the travel time of the corresponding line
                 travel_time = LineTimeCSV.loc[LineTimeCSV['lineID'] == line_id, 'Time'].values[0]
                 
-                # Actualizar el valor de 'crowding_in_veh'
+                #Update the 'crowding_in_veh' value
                 updated_crowding = float(crowding_value * ConW)
                 total_crowding += updated_crowding
             
-            # Añadir el total de 'crowding_in_veh' para esta ruta
+            #Add the total 'crowding_in_veh' for this route
             crowding_in_veh.append(total_crowding)
         
-        # Actualizar el diccionario con el nuevo valor de 'crowding_in_veh'
+        #Update the dictionary with the new 'crowding_in_veh' value
         combined_dict_msa_it[hour] = {
             'durations': values['durations'],
             'routes': values['routes'],
             'in_veh_time': values['in_veh_time'],
             'waiting_time': values['waiting_time'],
-            'gen_travel_cost': values['gen_travel_cost'],  # Permanece igual
+            'gen_travel_cost': values['gen_travel_cost'],  #Unchanged
             'gen_travel_cost_2': values['gen_travel_cost_2'],
-            'crowding_in_veh': crowding_in_veh,  # Se actualiza
+            'crowding_in_veh': crowding_in_veh,  #Updated
             'demand_prob_product': values['demand_prob_product'],
             'demand_prob_product_2': values['demand_prob_product_2']
         }
 
-    # Paso 8: Recalcular probabilidades (only for demand_regular)
+    #Step 8: Recalculate probabilities (only for regular demand)
     probabilities_msa_it = calculate_route_probabilities (combined_dict_msa_it)
     probabilities_msa_it_2 = calculate_route_probabilities_2 (combined_dict_msa_it)
 
-    # Paso 9: Recalcular 'demand_prob_product'
+    #Step 9: Recalculate 'demand_prob_product'
     demand_prob_product_msa_it = update_demand_prob_product(demand_by_interval, probabilities_msa_it)
-    # Actualizar el combined_dict con el nuevo 'demand_prob_product'
+    #Update combined_dict with the new 'demand_prob_product'
     for key, value in combined_dict_msa_it.items():
         if key in demand_prob_product_msa_it:
-            # Agregar la lista de productos a combined_dict_it bajo la clave 'demand_prob_product'
+            #Add the product list to combined_dict_it under the 'demand_prob_product' key
             value['demand_prob_product'] = demand_prob_product_msa_it[key]
     
     #recalculate demand_prob_product for demand_2
@@ -1943,29 +1943,29 @@ while not converged and iteration_counter < max_iterations:
         if key in demand_prob_product_msa_it_2:
             value['demand_prob_product_2'] = demand_prob_product_msa_it_2[key]
 
-    # Paso 10: Aplicar actualización MSA
+    #Step 10: Apply the MSA update
     combined_new_iteration = average_passengers(
         combined_dict_msa,
         combined_dict_msa_it,
         iteration_counter
     )
 
-    # Mostrar el 'demand_prob_product' de esta iteración
+    #Show the 'demand_prob_product' for this iteration
     print(f"Iteración {iteration_counter} - demand_prob_product:")
     for key in combined_dict_msa:
         print(f"  {key}: {combined_dict_msa[key]['demand_prob_product']}")
     
-    # Mostrar el 'crowding_in_veh' de esta iteración
+    #Show the 'crowding_in_veh' for this iteration
     print(f"Iteración {iteration_counter} - crowding_in_veh:")
     for key in combined_dict_msa:
         print(f"  {key}: {combined_dict_msa[key]['crowding_in_veh']}")
         
-    # Mostrar el 'crowding_in_veh' de esta iteración
+    #Show the 'crowding_in_veh' for this iteration
     print(f"Iteración {iteration_counter} - gen_travel_cost:")
     for key in combined_dict_msa:
         print(f"  {key}: {combined_dict_msa[key]['gen_travel_cost']}")
 
-    # Paso 10: Aplicar actualización MSA
+    #Step 10: Apply the MSA update
     combined_new_iteration = average_passengers(
         combined_dict_msa,
         combined_dict_msa_it,
@@ -1973,7 +1973,7 @@ while not converged and iteration_counter < max_iterations:
     )
     
     
-    # Paso 11: Verificación de convergencia
+    #Step 11: Check convergence
     converged = True
     
     for key in combined_dict_msa:
@@ -2018,7 +2018,7 @@ while not converged and iteration_counter < max_iterations:
             break
     
     
-    # Paso 12: Actualizar solución MSA
+    #Step 12: Update the MSA solution
     combined_dict_msa = combined_new_iteration
     
     
@@ -2034,7 +2034,7 @@ while not converged and iteration_counter < max_iterations:
 #%% CAPACITY FUNCTION 
 
 def max_capacity_combined_dict(combined_dict, starting_lines, unique_start_times, seating_cap, route_summary_lines):
-    # Crear el DataFrame 'demand_initial_platform'
+    #Create the 'demand_initial_platform' DataFrame
     demand_initial_platform = pd.DataFrame(
         0.0,
         index=range(len(starting_lines)),
@@ -2043,10 +2043,10 @@ def max_capacity_combined_dict(combined_dict, starting_lines, unique_start_times
     
     cost_for_overcrowding = 0.0
 
-    # Agregar la columna LineId
+    #Add the LineId column
     demand_initial_platform.insert(0, 'LineId', starting_lines)
 
-    # Crear 'demand_for_platforms' a partir de 'combined_dict'
+    #Create 'demand_for_platforms' from 'combined_dict'
     demand_for_platforms = {}
     for key, value in combined_dict.items():
         demand_for_platforms[key] = {
@@ -2055,7 +2055,7 @@ def max_capacity_combined_dict(combined_dict, starting_lines, unique_start_times
             'demand_prob_product_2': value['demand_prob_product_2'],
         }
 
-    # Llenar el DataFrame 'demand_initial_platform'
+    #Fill the 'demand_initial_platform' DataFrame
     for time, info in demand_for_platforms.items():
         routes = info['routes']
         demand1 = info['demand_prob_product']
@@ -2069,13 +2069,13 @@ def max_capacity_combined_dict(combined_dict, starting_lines, unique_start_times
             if not row_idx.empty:
                 demand_initial_platform.loc[row_idx, time] += total_demand
 
-    # Definir FullCap
+    #Define FullCap
     line_full_caps = {
         line_id: seating_cap[line_id]['FullCap']
         for line_id in starting_lines
     }
 
-    # Copiar combined_dict para no modificar el original
+    #Copy combined_dict to avoid modifying the original
     combined_dict_capacity = {}
     combined_dict_capacity = combined_dict.copy()
 
@@ -2090,7 +2090,7 @@ def max_capacity_combined_dict(combined_dict, starting_lines, unique_start_times
                 excess = value - full_cap
                 
 
-                # 1. Encontrar rutas afectadas (que contengan line_id)
+                #1. Find affected routes (those containing line_id)
                 routes_current = []
                 indexes_current = []
                 for route_idx, route in enumerate(combined_dict_capacity[time]['routes']):
@@ -2098,19 +2098,19 @@ def max_capacity_combined_dict(combined_dict, starting_lines, unique_start_times
                         routes_current.append(route)
                         indexes_current.append(route_idx)
 
-                # 2. Extraer los demand_prob_product actuales de esas rutas
+                #2. Extract the current demand_prob_product values for those routes
                 demands_current = [combined_dict_capacity[time]['demand_prob_product'][i] for i in indexes_current]
                 total_demand_current = sum(demands_current)
 
                 if total_demand_current == 0:
-                    continue  # Evitar división por cero
+                    continue  #Avoid division by zero
 
-                # 3. Reducir proporcionalmente los demand_prob_product
+                #3. Reduce demand_prob_product values proportionally
                 for i, idx_route in enumerate(indexes_current):
                     proportion = demands_current[i] / total_demand_current
                     combined_dict_capacity[time]['demand_prob_product'][idx_route] -= float(excess * proportion)
 
-                # 4. Agregar exceso proporcionalmente al siguiente start_time (si existe)
+                #4. Add the excess proportionally to the next start_time (if any)
                 if time_idx + 1 < len(unique_start_times):
                     next_time = unique_start_times[time_idx + 1]
                     routes_next = combined_dict_capacity[next_time]['routes']
@@ -2160,22 +2160,22 @@ def MSA_Convergence(combined_dict_new, starting_lines, unique_start_times, route
     while not converged and iteration_counter < max_iterations:
         iteration_counter += 1
         
-        # Paso 2: Redistribuir la demanda en el dataframe
+        #Step 2: Redistribute demand in the DataFrame
         crowding_table = pd.DataFrame(lines_data)
         crowding_distributed_msa = distribuir_demanda(crowding_table, combined_dict_msa, paths_per_hour)
 
-        # Paso 3: Total de pasajeros a bordo
+        #Step 3: Total passengers on board
         crowding_total = crowding_distributed_msa.copy()
         non_seating_msa = compute_non_seating_diff_df(seating_cap, crowding_total)
         crowding_prop_msa = compute_crowding_proportion(crowding_total, non_seating_msa, crowding_simulation_empty)
 
-        # Paso 4: Actualización de paths_per_hour con el peso de crowding
+        #Step 4: Update paths_per_hour with the crowding weight
         paths_per_hour_msa = update_paths_with_crowding(paths_per_hour, crowding_prop_msa)
 
-        # Paso 5: Inicializar el diccionario para la siguiente iteración
+        #Step 5: Initialize the dictionary for the next iteration
         combined_dict_msa_it = copy.deepcopy(combined_dict_new)
 
-        # Paso 6: Reset values before new assignment
+        # Step 6: Reset values before new assignment
         for key, value in combined_dict_msa_it.items():
         
             if 'crowding_in_veh' in value:
@@ -2193,47 +2193,47 @@ def MSA_Convergence(combined_dict_new, starting_lines, unique_start_times, route
                     [0.0] * len(value['demand_prob_product_2'])
                 )
 
-        # Paso 7: Calcular 'crowding_in_veh' para cada ruta
+        #Step 7: Calculate 'crowding_in_veh' for each route
         for hour, values in combined_dict_msa_it.items():
             crowding_in_veh = []
 
-            # Para cada ruta dentro de 'hour'
+            #For each route within 'hour'
             for route in values['routes']:
                 total_crowding = 0
                 for entry in paths_per_hour_msa[route][hour]:
                     line_id = entry['line']
                     crowding_value = entry['crowding_value']     
-                    # Obtener el tiempo de viaje de la línea correspondiente
+                    #Get the travel time of the corresponding line
                     travel_time = LineTimeCSV.loc[LineTimeCSV['lineID'] == line_id, 'Time'].values[0]
                     
-                    # Actualizar el valor de 'crowding_in_veh'
+                    #Update the 'crowding_in_veh' value
                     updated_crowding = float(crowding_value * ConW)
                     total_crowding += updated_crowding
                 
-                # Añadir el total de 'crowding_in_veh' para esta ruta
+                #Add the total 'crowding_in_veh' for this route
                 crowding_in_veh.append(total_crowding)
             
-            # Actualizar el diccionario con el nuevo valor de 'crowding_in_veh'
+            #Update the dictionary with the new 'crowding_in_veh' value
             combined_dict_msa_it[hour] = {
                 'durations': values['durations'],
                 'routes': values['routes'],
                 'in_veh_time': values['in_veh_time'],
                 'waiting_time': values['waiting_time'],
-                'gen_travel_cost': values['gen_travel_cost'],  # Permanece igual
-                'gen_travel_cost_2': values['gen_travel_cost_2'],  # Permanece igual
-                'crowding_in_veh': crowding_in_veh,  # Se actualiza
+                'gen_travel_cost': values['gen_travel_cost'],  #Unchanged
+                'gen_travel_cost_2': values['gen_travel_cost_2'],  #Unchanged
+                'crowding_in_veh': crowding_in_veh,  #Updated
                 'demand_prob_product': values['demand_prob_product'],
                 'demand_prob_product_2': values['demand_prob_product_2']
             }
 
-        # Paso 8: Recalcular probabilidades
+        #Step 8: Recalculate probabilities
         probabilities_msa_it = calculate_route_probabilities(combined_dict_msa_it)
         probabilities_msa_it_2 = calculate_route_probabilities_2 (combined_dict_msa_it)
 
-        # Paso 9: Recalcular 'demand_prob_product'
+        #Step 9: Recalculate 'demand_prob_product'
         demand_prob_product_msa_it = update_demand_prob_product(demand_by_interval, probabilities_msa_it)
 
-        # Actualizar el combined_dict con el nuevo 'demand_prob_product'
+        #Update combined_dict with the new 'demand_prob_product'
         for key, value in combined_dict_msa_it.items():
             if key in demand_prob_product_msa_it:
                 value['demand_prob_product'] = demand_prob_product_msa_it[key]
@@ -2243,7 +2243,7 @@ def MSA_Convergence(combined_dict_new, starting_lines, unique_start_times, route
             if key in demand_prob_product_msa_it_2:
                 value['demand_prob_product_2'] = demand_prob_product_msa_it_2[key]
 
-        # Paso 10: Aplicar actualización MSA
+        #Step 10: Apply the MSA update
         combined_new_iteration = average_passengers(
             combined_dict_msa,
             combined_dict_msa_it,
@@ -2251,7 +2251,7 @@ def MSA_Convergence(combined_dict_new, starting_lines, unique_start_times, route
         )
         
         
-        # Paso 11: Verificación de convergencia
+        #Step 11: Check convergence
         converged = True
         
         for key in combined_dict_msa:
@@ -2296,7 +2296,7 @@ def MSA_Convergence(combined_dict_new, starting_lines, unique_start_times, route
                 break
         
         
-        # Paso 12: Actualizar solución MSA
+        #Step 12: Update the MSA solution
         combined_dict_msa = combined_new_iteration
 
         if iteration_counter == max_iterations and not converged:
@@ -2315,7 +2315,7 @@ def MSA_Convergence(combined_dict_new, starting_lines, unique_start_times, route
 
     return combined_dict_msa, sim_cost_for_overcrowding
 
-# Ejecutar MSA
+#Run MSA
 combined_dict_msa, msa_cost_for_overcrowding = MSA_Convergence(
     combined_dict_new,
     starting_lines,
@@ -2334,13 +2334,13 @@ combined_dict_msa, msa_cost_for_overcrowding = MSA_Convergence(
 
 
 #%% FUNCTION TO COMPUTE GENERALIZED COST - PASSENGER COST
-#input combined_dict_msa
+#Input: combined_dict_msa
 
 def compute_passenger_cost(combined_dict_msa):
     sum_total = 0
     for key, data in combined_dict_msa.items():
         for cost, crowding, demand, cost_2, demand_2 in zip(data['gen_travel_cost'], data['crowding_in_veh'], data['demand_prob_product'], data['gen_travel_cost_2'], data['demand_prob_product_2']):
-            sum_total += demand * (cost) + demand_2 * (cost_2) # mising corwding
+            sum_total += demand * (cost) + demand_2 * (cost_2) #Missing crowding
     return sum_total
 
 passenger_cost_simulation = compute_passenger_cost(combined_dict_msa)
@@ -2388,14 +2388,14 @@ def calculate_line_costs_by_timetable_count(line_dict_fre_sche, headway_fr_cost=
     for line_id, line_data in line_dict_fre_sche.items():
         timetable_len = len(line_data['timetable'])
         if timetable_len == 0:
-            cost = 0  # evitar división por cero
+            cost = 0  #Avoid division by zero
         else:
             if line_data['SerType'] == 'Frequency':
                 cost = (60 / timetable_len) * headway_fr_cost
             elif line_data['SerType'] == 'Schedule':
                 cost = (60 / timetable_len) * schedule_cost
             else:
-                cost = 0  # tipo desconocido
+                cost = 0  #Unknown type
 
         cost_per_line[line_id] = cost
         total_cost += cost
@@ -2408,7 +2408,7 @@ def calculate_line_costs_by_timetable_count(line_dict_fre_sche, headway_fr_cost=
 def sum_partial_waiting_time(demand_data_frame):
     return demand_data_frame['Partial_waiting_time'].sum()
 
-#%% function to generate timtables 
+#%% Function to generate timetables
 
 def generate_timetables(start_times, headway_list, max_time=120):
     timetables_list_opt = []
@@ -2440,25 +2440,25 @@ def compute_operational_cost(headway_list, line_sertype_dict, schedule_cost=150,
 #%% FUNCTION TO UPDATE THE TIMETABLE OF ROUTES_DICT
 
 def update_routes_timetable(routes_dicts, timetables_list_opt):
-    # Crear una copia profunda del diccionario original
+    #Create a deep copy of the original dictionary
     routes_dict_opt = copy.deepcopy(routes_dicts)
     
-    # Obtener todos los lineids en orden para mapearlos con los nuevos horarios
+    #Get all line IDs in order to map them to the new timetables
     line_ids = []
     for route in routes_dicts.values():
         for line in route.values():
             line_ids.append(line["lineid"])
     
-    # Asegurar que no haya más líneas que timetables disponibles
-    unique_line_ids = sorted(set(line_ids))  # Obtener IDs únicos ordenados
+    #Ensure there are no more lines than available timetables
+    unique_line_ids = sorted(set(line_ids))  #Get sorted unique IDs
     
     if len(unique_line_ids) != len(timetables_list_opt):
         raise ValueError("El número de lineas y timetables no coincide.")
     
-    # Crear un diccionario para mapear lineid con su nuevo timetable
+    #Create a dictionary mapping line_id to its new timetable
     lineid_to_timetable = {line_id: timetable for line_id, timetable in zip(unique_line_ids, timetables_list_opt)}
     
-    # Actualizar el timetable en la copia de routes_dicts
+    #Update the timetable in the copy of routes_dicts
     for route in routes_dict_opt.values():
         for line in route.values():
             line_id = line["lineid"]
@@ -2473,7 +2473,7 @@ def update_paths_with_crowding_new(paths_per_hour, crowding_proportion):
 
     for route, times in paths_per_hour_it.items():
         for departure_time, trips in times.items():
-            departure_time = str(departure_time)  # Asegurar que sea string
+            departure_time = str(departure_time)  #Ensure it is a string
             for trip in trips:
                 line_id = trip['line']
                 
@@ -2493,18 +2493,18 @@ def update_paths_with_crowding_new(paths_per_hour, crowding_proportion):
 
     return paths_per_hour_it
 
-#%% CAOMPUTE WAITING TIME OF SIMULATION USANDO LAS UNIQUE START TIMES Y LA DEMAND_DICT
+#%% COMPUTE SIMULATION WAITING TIME USING UNIQUE START TIMES AND demand_dict
 
 def compute_waiting_time_cumulated(demand_dict, unique_start_times, WaitW):
     total_waiting_time = 0
 
-    unique_start_times = sorted(unique_start_times)  # Asegurar orden
+    unique_start_times = sorted(unique_start_times)  #Ensure correct ordering
 
     for time, demand in demand_dict.items():
-        # Buscar el primer tiempo en unique_start_times que sea >= time
+        #Find the first time in unique_start_times that is >= time
         future_departures = [start for start in unique_start_times if start >= time]
         if not future_departures:
-            continue  # No hay salida futura para este grupo, ignoramos o asumimos espera infinita
+            continue  #No future departure for this group; ignore it or assume infinite waiting time
 
         next_departure = future_departures[0]
         wait_time = next_departure - time
@@ -2513,35 +2513,35 @@ def compute_waiting_time_cumulated(demand_dict, unique_start_times, WaitW):
 
     return total_waiting_time
 
-# #%% OPTIMIZATON INITIATES HERE
+##%% OPTIMIZATION STARTS HERE
 
-# Parámetros iniciales
+#Initial parameters
 headway_fr_cost = 100
 schedule_cost = 150
 
-# Definir las listas de start_times y headway_list de acuerdo a los valores en timetables_list
-start_times = [t[0] for t in timetables_list]  # Extraer los tiempos de inicio
-headway_list = [t[1] - t[0] for t in timetables_list]  # Calcular los intervalos de tiempo (headways)
+#Define start_times and headway_list based on the values in timetables_list
+start_times = [t[0] for t in timetables_list]  #Extract start times
+headway_list = [t[1] - t[0] for t in timetables_list]  #Calculate time intervals (headways)
 
 
 print("Start Optimization")
 print("start_times initial", start_times)
 print("headway_list initial", headway_list)
 
-#%% FUNCTION TO MAKE DEMAND SUMMARY FOR ALL REOUTES SELECTION
+#%% FUNCTION TO SUMMARIZE DEMAND FOR ALL ROUTE CHOICES
 
 def create_demand_summary(combined_dict):
-    # Inicializamos el nuevo diccionario
+    #Initialize the new dictionary
     demand_summary_simulation = {}
     
-    # Asumimos que las rutas son siempre las mismas
+    #Assume routes always remain the same
     rutas = list(route_summary_lines.keys())
     
-    # Inicializamos cada ruta
+    #Initialize each route
     for ruta in rutas:
         demand_summary_simulation[ruta] = {'group_1': 0.0, 'group_2': 0.0}
     
-    # Ahora recorremos el combined_dict
+    #Now iterate over combined_dict
     for _, data in combined_dict.items():
         routes = data['routes']
         demand_prob_product = data['demand_prob_product']
@@ -2557,24 +2557,24 @@ demand_summary_dict = create_demand_summary(combined_dict)
 
 #%%
 
-##funtion to gest GENERALIZED COST given start_times and headway_list
+### Function to calculate GENERALIZED COST given start_times and headway_list
 def objective_function(start_times, headway_list):
     
     routes_dicts_00 = copy.deepcopy(routes_dicts)
     g_paths_merge_00 = copy.deepcopy(g_paths_merge)
-    # GENERAR HORARIOS OPTIMIZADOS
+    #GENERATE OPTIMIZED TIMETABLES
     timetables_list_opt = generate_timetables(start_times, headway_list, max_time=120)
     print(" Timetables_optimization")
     print(timetables_list_opt)
     print(" --")
-    # CÁLCULO DE COSTO OPERACIONAL
+    #CALCULATE OPERATING COST
     operational_cost = compute_operational_cost(headway_list, line_sertype_dict, schedule_cost=150, headway_fr_cost=100)
 
-    # ACTUALIZAR RUTAS CON LOS HORARIOS OPTIMIZADOS
+    #UPDATE ROUTES WITH OPTIMIZED TIMETABLES
     
     routes_dict_opt = update_routes_timetable(routes_dicts_00, timetables_list_opt)
 
-    # GENERAR RUTAS POR HORA
+    #GENERATE ROUTES BY TIME
     paths_per_hour_opt = {}
     numb_choices = len(g_paths_merge_00)
     for i in range(numb_choices):
@@ -2584,7 +2584,7 @@ def objective_function(start_times, headway_list):
         route_times_result = calculate_route_times(dict_of_route, sequ_of_route_opt)
         paths_per_hour_opt[route_key] = route_times_result
     
-    ## eliminate paths per hour with arrival time after 120!
+    ### Eliminate paths per hour with arrival times after 120
     for route, departures in paths_per_hour_opt.items():
         keys_to_delete = []
         for key, steps in departures.items():
@@ -2594,7 +2594,7 @@ def objective_function(start_times, headway_list):
             del paths_per_hour_opt[route][key]
     
 
-    # CALCULAR DURACIONES DE CADA RUTA
+    #CALCULATE EACH ROUTE'S DURATION
     durations_opt = {}
     for route, times in paths_per_hour_opt.items():
         durations_opt[route] = {}
@@ -2607,7 +2607,7 @@ def objective_function(start_times, headway_list):
                 "total_duration": total_duration
             }
 
-    # COMBINAR DATOS DE DURACIONES Y RUTAS
+    #COMBINE DURATION AND ROUTE DATA
     start_times_by_route_opt = {route: list(data.keys()) for route, data in durations_opt.items()}
     combined_dict_opt = {}
     unique_start_times_opt = sorted(set(time for times in start_times_by_route_opt.values() for time in times))
@@ -2620,27 +2620,27 @@ def objective_function(start_times, headway_list):
     for time in unique_start_times_opt:
         combined_dict_opt[time] = [route for route, times in start_times_by_route_opt.items() if time in times]
 
-    # INCLUIR COSTOS, TIEMPOS DE VIAJE Y ESPERA
+    #INCLUDE COSTS, TRAVEL TIMES, AND WAITING TIMES
     for start_time, routes in combined_dict_opt.items():
         durations = [durations_opt[route][start_time]['total_duration'] for route in routes if start_time in durations_opt.get(route, {})]
         combined_dict_opt[start_time] = {'routes': routes, 'durations': durations}
 
-    # INCLUIR TIEMPOS EN VEHÍCULO Y TIEMPOS DE ESPERA
+    #INCLUDE IN-VEHICLE AND WAITING TIMES
     route_in_veh_time = {f'route_{i+1}': int(sum(LineTimeCSV.loc[LineTimeCSV['lineID'].isin(route), 'Time'])) for i, route in enumerate(g_paths_merge_00)}
     
     ## Compute in_veh_time (generalized cost)
     for key, value in combined_dict_opt.items():
         value["in_veh_time"] = [route_in_veh_time[route] for route in value["routes"] if route in route_in_veh_time]
     
-    ## Compute waiting_time (Headway/2 for all lines excep the first one)
+    ### Compute waiting_time (headway/2 for all lines except the first)
     for key, value in combined_dict_opt.items():
         total_waiting_time = []
         for route in value["routes"]:
             lines_in_route = route_summary_lines.get(route, [])
-            # Excluir la primera línea
+            #Exclude the first line
             subsequent_lines = lines_in_route[1:]
 
-            # Calcular el tiempo de espera como headway / 2 para cada línea subsecuente
+            #Calculate waiting time as headway / 2 for each subsequent line
             waiting_time_per_route = sum((headway_list[line] / 2) for line in subsequent_lines)
             total_waiting_time.append(waiting_time_per_route)
         
@@ -2656,7 +2656,7 @@ def objective_function(start_times, headway_list):
         combined_dict_opt[start_time]['penalty_route'] = penalty_route
 
 
-    # CALCULAR COSTO DE VIAJE GENERADO
+    #CALCULATE GENERALIZED TRAVEL COST
     for key, value in combined_dict_opt.items():
         value["gen_travel_cost"] = [
             waiting_time * WaitW + route_inveh_perc[route]  + penalty
@@ -2669,12 +2669,12 @@ def objective_function(start_times, headway_list):
             for waiting_time, route, penalty in zip(value["waiting_time"], value["routes"], value["penalty_route"])
         ]
 
-    # INCLUIR CARGA EN VEHÍCULO
+    #INCLUDE ONBOARD LOAD
     for time, data in combined_dict_opt.items():
         data['crowding_in_veh'] = [0.0] * len(data['routes'])
         
     
-    # SIMULACIÓN DE DEMANDA ------ SPLIT X 2 CATEGORIES
+    #SIMULATE DEMAND — SPLIT INTO TWO CATEGORIES
     accumulated_demand_opt = compute_accumulated_demand(demand_dict, unique_start_times_opt)
     accumulated_demand_opt_2 = compute_accumulated_demand(demand_dict_2, unique_start_times_opt)
     
@@ -2691,20 +2691,20 @@ def objective_function(start_times, headway_list):
     # print(demand_by_interval_opt_1)
     # print(" ---------")
     
-    # CORRETC!-------------------------------------------------------------
+    #CORRECT!-------------------------------------------------------------
     
     #INSERT FUNCTION TO VERIFY DEMAND_BY_INTERVAL_OPT_2
     
-    # CALULAR WAITING TIME CUMULATED OF ENTIRE SIMULATION
+    #CALCULATE CUMULATIVE WAITING TIME FOR THE ENTIRE SIMULATION
     total_waiting_opts = compute_waiting_time_cumulated(demand_dict, unique_start_times_opt, WaitW)
     total_waiting_opts_2 = compute_waiting_time_cumulated(demand_dict_2, unique_start_times_opt, WaitW)
 
-    # CALCULAR PROBABILIDADES DE RUTA
+    #CALCULATE ROUTE PROBABILITIES
     probability_opt = calculate_route_probabilities(combined_dict_opt)
     probability_opt_2 = calculate_route_probabilities_2(combined_dict_opt)
-    # CORRETC!-------------------------------------------------------------
+    #CORRECT!-------------------------------------------------------------
 
-    # INCLUIR DEMANDA Y PRODUCTO DE PROBABILIDAD
+    #INCLUDE DEMAND AND PROBABILITY PRODUCT
     demand_prob_product_preMSA = update_demand_prob_product(demand_by_interval_opt_1, probability_opt)
     demand_prob_product_preMSA_2 = update_demand_prob_product(demand_by_interval_opt_2, probability_opt_2)
     
@@ -2712,7 +2712,7 @@ def objective_function(start_times, headway_list):
     # print("demand_prob_product_preMSA")
     # print(demand_prob_product_preMSA)
     # print(" ---------")
-    # CORRETC!-------------------------------------------------------------
+    #CORRECT!-------------------------------------------------------------
     
     for time, data in combined_dict_opt.items():
         data['demand_prob_product'] = demand_prob_product_preMSA.get(time, [0.0] * len(data['routes']))
@@ -2733,9 +2733,9 @@ def objective_function(start_times, headway_list):
     # print(demand_summary_dict)
     # print("--")
     
-    # CORRETC!-------------------------------------------------------------
+    #CORRECT!-------------------------------------------------------------
 
-    # SIMULACIÓN DE AGLOMERACIÓN
+    #SIMULATE CROWDING
     crowding_simulation_opt = crowding_simulation_empty
     crowding_empty= crowding_simulation_empty.copy()
     
@@ -2758,7 +2758,7 @@ def objective_function(start_times, headway_list):
     
     crowding_prop_msa_opt = compute_crowding_proportion(crowding_simulation_opt, crowding_non_seating_opt, crowding_simulation_empty)
 
-    # ACTUALIZAR RUTAS CON NUEVAS AGLOMERACIONES
+    #UPDATE ROUTES WITH NEW CROWDING VALUES
     paths_per_hour_msa_opt = update_paths_with_crowding(paths_per_hour_opt, crowding_prop_msa_opt)
 
 
@@ -2782,7 +2782,7 @@ def objective_function(start_times, headway_list):
     for route_data in demand_summary_dict.values():
         demand_check_g1g2 += route_data['group_1'] + route_data['group_2'] 
 
-    # CÁLCULO DE COSTO DE PASAJEROS
+    #CALCULATE PASSENGER COST
     
     print(" ")
     print("Passenger_cost_routes")
@@ -2796,7 +2796,7 @@ def objective_function(start_times, headway_list):
     print("cost_for_overvrowding")
     print(cost_for_overcrowding_opt)
 
-    # DEFINIMOS EL COSTO FINAL QUE QUEREMOS MINIMIZAR
+    #DEFINE THE FINAL COST TO MINIMIZE
     
     global cplex_total_cost
     cplex_total_cost = float(Passenger_cost_routes) + operational_cost + float(total_waiting_opts) +  float(total_waiting_opts_2) + float(cost_for_overcrowding_opt)
