@@ -25,6 +25,10 @@ N_TRIALS = 50
 
 Each trial tests a start time and a headway for every line. Increasing N_TRIALS allows Optuna to evaluate more candidate combinations but generally increases runtime.
 
+**Note on perception parameters:**
+The PathPara.csv file contains indicative values for passenger perception factors (Denmark context) used to calculate generalized travel costs components.
+These values are provided as a reference and can be adjusted to reflect the specific characteristics, assumptions, and local context of each case study.
+
 **Results**
 After the optimization, the script prints:
 - The lowest objective-function value found
