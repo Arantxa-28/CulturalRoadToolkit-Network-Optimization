@@ -44,3 +44,6 @@ The main results are also available as Python variables:
 - best_headway_list: list of optimized headways
 - TRA_df_trials: DataFrame containing trial costs, tested parameters, and the demand-assignment check
 Note: The current script creates TRA_df_trials in memory, but it does not automatically export this DataFrame to a CSV file.
+
+**Acknowledgements**
+This research was supported by the Horizon Research and Innovation Actions (Grant No. 101147397, CulturalRoad) and partially funded by the Independent Research Fund Denmark (2035-00111B).
