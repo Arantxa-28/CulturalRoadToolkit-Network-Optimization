@@ -326,12 +326,12 @@ for i in range(len(LineTimeCSV)):
     line_id = int(LineTimeCSV.loc[i, 'lineID'])
     time = float(LineTimeCSV.loc[i, 'Time'])
     veh_type = LinesCSV.loc[LinesCSV['id'] == line_id, 'VehType'].values[0]
-    factor = perception_factors[veh_type]  # Match con perception_factors
+    factor = perception_factors[veh_type]  # Match with perception_factors
 
-    # Calcular GenCostTravel
+    # Compute GenCostTravel
     gen_cost_travel = time * factor
 
-    # Agregar todo al diccionario lines_type
+    # Add to dictionary lines_type
     lines_type[line_id] = {
         'Time': time,
         'VehType': veh_type,
@@ -345,7 +345,7 @@ for row in range (0,Linestotal,1):
     stop_list = []
     for col in LineStopCSV.columns[1:]:
         stop = LineStopCSV.iloc[row][col]
-        if pd.notna(stop):  # Ignorar valores NaN
+        if pd.notna(stop):  # Iggnored values NaN
             stop_list.append(int(stop))
             Stops_dict[f"StopLine{lineid}"] = stop_list       
             exec(f"Stops_list{lineid}= stop_list")
@@ -713,23 +713,23 @@ for idx, path in enumerate(g_paths_merge):
     
     
 #%% ROUTES DICT    
-routes_dicts = {}  # Este diccionario almacenará todos los diccionarios de rutas
+routes_dicts = {}  # This dictionary will store all the route dictionaries.
 
 for i, (route, travel_times) in enumerate(zip(g_paths_merge, g_paths_merge_time), start=1):
     route_dict = {}  # Este diccionario almacenará las lineas de esta ruta
     for line_id, travel_time in zip(route, travel_times):
-        timetable = timetables_list[line_id]  # Obtenemos el timetable correspondiente
+        timetable = timetables_list[line_id]  
         route_dict[line_id] = {
             'lineid': line_id,
             'timetable': timetable,
             'traveltime': travel_time
         }
-    # Guardar el diccionario de la ruta con el nombre correspondiente
+    #  Save the route dictionary with its corresponding name.
     routes_dicts[f"route_{i}"] = route_dict
 
 #Add the In-veh cost
-for route_key, route_dict in routes_dicts.items():  # Iterar sobre cada ruta en routes_dicts
-    for line_id, line_info in route_dict.items():  # Iterar sobre cada línea en la ruta
+for route_key, route_dict in routes_dicts.items():  # Iterate over each route in routes_dicts.
+    for line_id, line_info in route_dict.items():  # Iterate over each line in the route.
         # Obtener el GenCostTravel de lines_type usando line_id
         gen_cost_travel = lines_type.get(line_id, {}).get('GenCostInVeh', 0)  # Default 0 si no se encuentra
         
@@ -827,13 +827,13 @@ for route, times in paths_per_hour.items():
             "total_duration": total_duration
         }
 
-# Definimos los intervalos de tiempo (cada 3 unidades hasta 60)
+# Define the time intervals (every 3 units up to 60).
 intervals = list(range(0, 60, 3))
 
-# Inicializamos interval_data con 0 rutas disponibles y demanda en 0
+# Initialize interval_data with 0 available routes and 0 demand.
 interval_data = {i: {'available_routes': 0, 'demand': 0} for i in intervals}
 
-# Contamos cuántas rutas están disponibles en cada intervalo
+# Count how many routes are available in each interval.
 for route, times in durations.items():
     for start_time, duration_info in times.items():
         # Encontramos el intervalo más cercano a start_time
@@ -975,7 +975,7 @@ combined_dict = {
 #COMPUTE CUMULATED WAITING TIME
 demand_data_frame = pd.DataFrame(list(demand_by_interval.items()), columns=["Time", "Demand_cumulated"])
 
-# Creamos una columna para los pasajeros liberados en cada intervalo
+# Create a column for passengers released in each interval.
 demand_data_frame["Demand_release"] = demand_data_frame["Time"].apply(lambda x: demand_dict.get(x, 0))
 demand_data_frame["Waiting_time"] = 0
 
@@ -986,14 +986,14 @@ for index, row in demand_data_frame.iterrows():
     if row["Demand_cumulated"] > 0:
         # Si la demanda acumulada es mayor a 0, guardamos el tiempo
         last_demand_time = row["Time"]
-        demand_data_frame.at[index, "Waiting_time"] = 0  # El tiempo de espera es 0 mientras haya demanda acumulada
+        demand_data_frame.at[index, "Waiting_time"] = 0  # The waiting time is 0 as long as there is accumulated demand.
     else:
-        # Si no hay demanda acumulada, calculamos el tiempo de espera
+        # If there is no accumulated demand, calculate the waiting time.
         if last_demand_time is None:
-            # Si nunca hubo una demanda acumulada, tomamos el tiempo actual como waiting time
+            # If there has never been any accumulated demand, use the current time as the waiting time.
             demand_data_frame.at[index, "Waiting_time"] = row["Time"]
         else:
-            # Si hay demanda acumulada en el pasado, calculamos la diferencia
+            # If there was accumulated demand in the past, calculate the difference.
             demand_data_frame.at[index, "Waiting_time"] = row["Time"] - last_demand_time
 
 demand_data_frame["Partial_waiting_time"] = demand_data_frame["Demand_release"] * demand_data_frame["Waiting_time"] * ZoneWaitW
@@ -1044,15 +1044,15 @@ for route in route_inveh_perc:
 
 travel_in_veh = {}
 
-# Iterar sobre cada ruta en routes_dict
+#  Iterate over each route in routes_dict.
 for route, lines in routes_dicts.items():
-    # Sumar todos los valores de 'traveltime' de las líneas de cada ruta
+    # Sum all 'traveltime' values for the lines in each route.
     total_travel_time = sum(data['traveltime'] for data in lines.values())
     travel_in_veh[route] = total_travel_time
     
 for key, value in combined_dict.items():
     in_veh_time_list = [sum(routes_dicts[route][line]['traveltime'] for line in routes_dicts[route]) for route in value['routes']]
-    combined_dict[key]['in_veh_time'] = in_veh_time_list  # Agregar la lista
+    combined_dict[key]['in_veh_time'] = in_veh_time_list  # Add to list
 
 #   
 for key, value in combined_dict.items():
@@ -1068,7 +1068,7 @@ for time_slot, data in combined_dict.items():
         transfer_penalty = route_transfer_penalty.get(route, 0)
         waiting = data['waiting_time'][i]
         total_cost = in_veh + transfer_penalty + (waiting * WaitW)
-        gen_travel_cost.append(round(total_cost, 2))  # redondear si lo deseas
+        gen_travel_cost.append(round(total_cost, 2))  # round
     data['gen_travel_cost'] = gen_travel_cost
 
 for time_slot, data in combined_dict.items():
@@ -1078,7 +1078,7 @@ for time_slot, data in combined_dict.items():
         transfer_penalty = route_transfer_penalty.get(route, 0)
         waiting = data['waiting_time'][i]
         total_cost_2 = in_veh + transfer_penalty + (waiting * WaitW) ## for demand group 2
-        gen_travel_cost_2.append(round(total_cost_2, 2))  # redondear si lo deseas
+        gen_travel_cost_2.append(round(total_cost_2, 2))  # round
     data['gen_travel_cost_2'] = gen_travel_cost_2
     
 # No. 5 Crowding Cost Iteration no. 0
@@ -1111,20 +1111,20 @@ for key, value in combined_dict.items():
     gen_travel_costs = np.array(value['gen_travel_cost'])
     crowding_costs = np.array(value['crowding_in_veh'])
 
-    # Nuevo costo combinado
+    # New combined cost
     total_costs = gen_travel_costs + crowding_costs
 
-    # Calcular exponencial negativa de los costos
+    #  Calculate the negative exponential of the costs.
     exp_neg_costs = np.exp(-total_costs)
 
-    # Normalizar para obtener probabilidades (modelo logit)
+    # Normalize to obtain probabilities (logit model).
     total_exp = np.sum(exp_neg_costs)
     if total_exp == 0:
         total_exp = 1e-10  # Evitar división por cero
 
     probs = exp_neg_costs / total_exp
 
-    # Asociar cada ruta con su probabilidad
+    # Associate each route with its probability.
     routes = value['routes']
     probabilities[key] = {route: float(probs[i]) for i, route in enumerate(routes)}
  
@@ -1160,7 +1160,7 @@ print("Probabilities 2: ")
 print(probabilities_2)
 print(" ")
     
-#combinar combided_dict y prbabilities in dictionario new
+#merge combided_dict and probabilities in dictionario new
 passenger_route = {}
 passenger_route_2 = {}
 
@@ -1169,7 +1169,7 @@ for time, data in combined_dict.items():
     durations = data["durations"]
     route_probs = [probabilities[time].get(route, 0) for route in routes]
     
-    # Guardar la información combinada
+    # Save combined information
     passenger_route[time] = {
         "durations": durations,
         "routes": routes,
@@ -1185,7 +1185,7 @@ for time, data in combined_dict.items():
     durations = data["durations"]
     route_probs = [probabilities_2[time].get(route, 0) for route in routes]
     
-    # Guardar la información combinada
+    # Save combined information
     passenger_route_2[time] = {
         "durations": durations,
         "routes": routes,
@@ -1221,16 +1221,16 @@ for key, demand in demand_by_interval_2.items():
         
 # for demand
 for key, value in combined_dict.items():
-    # Verificar si existe una lista de productos de demanda * probabilidad para este intervalo en probability_demand_product
+    # Check if a list of demand * probability products exists for this interval in probability_demand_product.
     if key in probability_demand_product:
         # Agregar la lista de productos a combined_dict bajo la clave 'demand_prob_product'
         value['demand_prob_product'] = probability_demand_product[key]
 
 # for demand_2
 for key, value in combined_dict.items():
-    # Verificar si existe una lista de productos de demanda * probabilidad para este intervalo en probability_demand_product
+    # Add the list of products to combined_dict under the 'demand_prob_product' key.
     if key in probability_demand_product_2:
-        # Agregar la lista de productos a combined_dict bajo la clave 'demand_prob_product'
+        # Add the list of products to combined_dict under the 'demand_prob_product' key.
         value['demand_prob_product_2'] = probability_demand_product_2[key]
 
 #MODIFY COMBINED_DICT
@@ -1244,21 +1244,21 @@ for key, value in combined_dict.items():
 
 
 #%%
-## objective function parte passengres
-total_travelcost_routes = 0.0  # <- variable acumuladora
+## objective function: passengres
+total_travelcost_routes = 0.0  # <- Accumulator variable
 
-# Recorremos cada intervalo de tiempo en combined_dict
+# Iterate over each time interval in combined_dict.
 for key, value in combined_dict.items():
-    # Obtener las listas de 'demand_prob_product' y 'gen_travel_cost' para este intervalo
+    # Calculate the sum of the products for the objective function in this interval.
     demand_prob_product = value.get('demand_prob_product', [])
     gen_travel_cost = value.get('gen_travel_cost', [])
     
-    # Si ambas listas existen y tienen el mismo tamaño
+    # If both lists exist and have the same length.
     if len(demand_prob_product) == len(gen_travel_cost):
         # Calcular la suma de los productos para la función objetivo en este intervalo
         partial_sum = sum(d * g for d, g in zip(demand_prob_product, gen_travel_cost))
         
-        # Sumar el resultado al total global
+        #  Add the result to the overall total.
         total_travelcost_routes += partial_sum
 
 print(" ")
@@ -1269,7 +1269,7 @@ print(" ")
 #COMPUTE CUMULATED WAITING TIME
 demand_data_frame = pd.DataFrame(list(demand_by_interval.items()), columns=["Time", "Demand_cumulated"])
 
-# Creamos una columna para los pasajeros liberados en cada intervalo
+# Create a column for passengers released in each interval.
 demand_data_frame["Demand_release"] = demand_data_frame["Time"].apply(lambda x: demand_dict.get(x, 0))
 demand_data_frame["Waiting_time"] = 0
 
@@ -1280,14 +1280,14 @@ for index, row in demand_data_frame.iterrows():
     if row["Demand_cumulated"] > 0:
         # Si la demanda acumulada es mayor a 0, guardamos el tiempo
         last_demand_time = row["Time"]
-        demand_data_frame.at[index, "Waiting_time"] = 0  # El tiempo de espera es 0 mientras haya demanda acumulada
+        demand_data_frame.at[index, "Waiting_time"] = 0  # The waiting time is 0 as long as there is accumulated demand.
     else:
-        # Si no hay demanda acumulada, calculamos el tiempo de espera
+        #  If there is no accumulated demand, calculate the waiting time.
         if last_demand_time is None:
-            # Si nunca hubo una demanda acumulada, tomamos el tiempo actual como waiting time
+            # If there has never been any accumulated demand, use the current time as the waiting time.
             demand_data_frame.at[index, "Waiting_time"] = row["Time"]
         else:
-            # Si hay demanda acumulada en el pasado, calculamos la diferencia
+            # If there was accumulated demand in the past, calculate the difference.
             demand_data_frame.at[index, "Waiting_time"] = row["Time"] - last_demand_time
 
 demand_data_frame["Partial_waiting_time"] = demand_data_frame["Demand_release"] * demand_data_frame["Waiting_time"] * ZoneWaitW
@@ -1326,13 +1326,13 @@ for _, row in LinesCSV.iterrows():
     line_name = row['Name']
     line_data = {'LineID': line_id, 'Name': line_name}
     
-    # Añadir columnas de tiempo (0-60) con ceros
+    # Add time columns (0–60) initialized to zero.
     for time in time_intervals:
         line_data[time] = 0.0
     
     lines_data.append(line_data)
 
-# Crear un nuevo DataFrame con la información actualizada
+# Create a new DataFrame with the updated information.
 crowding_simulation = pd.DataFrame(lines_data)
 crowding_simulation_empty = pd.DataFrame(lines_data)
 
@@ -1377,7 +1377,7 @@ def distribuir_demanda(crowding_simulation, combined_dict, paths_per_hour):
                             ] += float(total_demand)
     return crowding_simulation
 
-# Llamamos a la función para distribuir la demanda
+# Call the function to distribute the demand.
 crowding_lines = distribuir_demanda(crowding_simulation, combined_dict, paths_per_hour)
 
 
@@ -1404,16 +1404,16 @@ starting_lines = list(set(route[0] for route in route_summary_lines.values()))
 
 # %%    
 
-# Creamos el nuevo DataFrame de diferencia
+# Create a new difference DataFrame.
 non_seating_diff_df = crowding_numeric.copy()
 
-# Restamos capacidad a cada fila (solo columnas horarias)
+# Subtract the capacity from each row (time columns only).
 for idx, row in non_seating_diff_df.iterrows():
     line_id = row['LineID']  # Accedemos al LineID directamente
-    cap = seating_cap[line_id]['Cap']  # Usamos line_id para acceder a la capacidad
+    cap = seating_cap[line_id]['Cap']  
     non_seating_diff_df.iloc[idx, 2:] = crowding_numeric.iloc[idx, 2:] - cap
 
-# Opcional: reemplazar negativos por 0 (si solo interesan los pasajeros de pie)
+# Optional: replace negative values with 0 (if only standing passengers are of interest).
 non_seating_diff_df.iloc[:, 2:] = non_seating_diff_df.iloc[:, 2:].clip(lower=0)
 
 # Update crowding_in_veh using values of crowding_proportion
@@ -1421,26 +1421,26 @@ non_seating_diff_df.iloc[:, 2:] = non_seating_diff_df.iloc[:, 2:].clip(lower=0)
 #this is to compute standing passengers
 crowding_seating = crowding_numeric.copy()
 
-for idx in range(2, crowding_numeric.shape[1]):  # Empezamos desde la columna 2 (horarios)
+for idx in range(2, crowding_numeric.shape[1]):  
     crowding_seating.iloc[:, idx] = crowding_numeric.iloc[:, idx] - non_seating_diff_df.iloc[:, idx]
 
 #%% FUNCION DE COMPUTE non_seating_diff_df
 
 def compute_non_seating_diff_df(seating_cap, crowding_numeric):
-    # Asegurar que los datos numéricos estén bien
+    # Ensure the numeric data is properly formatted.
     crowding_numeric = crowding_numeric.copy()
     crowding_numeric.iloc[:, 2:] = crowding_numeric.iloc[:, 2:].apply(pd.to_numeric, errors='coerce')
 
-    # Creamos el nuevo DataFrame de diferencia
+    # Create a new difference DataFrame.
     non_seating_diff_df = crowding_numeric.copy()
 
-    # Restamos la capacidad de asientos a cada fila (solo columnas horarias)
+    # Subtract the seating capacity from each row (time columns only).
     for idx, row in non_seating_diff_df.iterrows():
         line_id = row['LineID']
         cap = seating_cap.get(line_id, {}).get('Cap', 0)  # Evitar errores si falta LineID
         non_seating_diff_df.iloc[idx, 2:] = crowding_numeric.iloc[idx, 2:] - cap
 
-    # Reemplazar valores negativos por 0 (solo pasajeros de pie)
+    # Replace negative values with 0 (standing passengers only).
     non_seating_diff_df.iloc[:, 2:] = non_seating_diff_df.iloc[:, 2:].clip(lower=0)
 
     return non_seating_diff_df
@@ -1451,14 +1451,14 @@ def compute_non_seating_diff_df(seating_cap, crowding_numeric):
 # Update paths_per_hour_it 
 # for cosndeirng the crowding_proportion based on dataframes non_seating_diff_df / crowding_numeric
 
-# Asegura que los datos sean float64 para evitar problemas de tipo
+# Ensure the data is of type float64 to avoid type-related issues.
 crowding_numeric.iloc[:, 2:] = crowding_numeric.iloc[:, 2:].astype('float64')
 non_seating_diff_df.iloc[:, 2:] = non_seating_diff_df.iloc[:, 2:].astype('float64')
 
-# Crea una copia base del DataFrame
+# Create a base copy of the DataFrame.
 crowding_proportion = crowding_numeric.copy()
 
-# Recorre fila por fila y columna por columna desde la tercera
+# Iterate row by row and column by column, starting from the third column.
 for row in crowding_proportion.index:
     for col in crowding_proportion.columns[2:]:
         numerator = non_seating_diff_df.at[row, col]
