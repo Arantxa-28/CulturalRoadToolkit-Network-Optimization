@@ -727,7 +727,7 @@ for i, (route, travel_times) in enumerate(zip(g_paths_merge, g_paths_merge_time)
     # Guardar el diccionario de la ruta con el nombre correspondiente
     routes_dicts[f"route_{i}"] = route_dict
 
-#Agregar el In-veh cost
+#Add the In-veh cost
 for route_key, route_dict in routes_dicts.items():  # Iterar sobre cada ruta en routes_dicts
     for line_id, line_info in route_dict.items():  # Iterar sobre cada línea en la ruta
         # Obtener el GenCostTravel de lines_type usando line_id
@@ -736,48 +736,48 @@ for route_key, route_dict in routes_dicts.items():  # Iterar sobre cada ruta en 
         # Agregar GenCostTravel al diccionario de la línea
         route_dict[line_id]['GenCostInVeh'] = gen_cost_travel
 
-    # Guardar el diccionario actualizado de la ruta en routes_dicts
+    # Save dictionary using routes_dicts
     routes_dicts[route_key] = route_dict
 
-#%%
+#%% Next Step
 #function to compute 
 def calculate_route_times(routes_dict, route_sequence):
     result = {}
 
-    # Iteramos sobre cada horario de salida de la primera línea de la secuencia.
+    # We iterate over each departure time in the first line of the sequence.
     for start_time in routes_dict[route_sequence[0]]['timetable']:
-        current_time = start_time       # Inicializamos con el horario de la primera línea.
-        route_times = []                # Aquí guardaremos los tramos de la ruta.
-        route_possible = True           # Bandera para determinar si la ruta es posible.
+        current_time = start_time       # Initialize with the departure time from the first line.
+        route_times = []                #  Store the route segments here.
+        route_possible = True           # Flag to determine whether the route is feasible.
 
-        # Recorremos cada línea en el orden dado.
+        # Iterate over each line in the given order.
         for line_id in route_sequence:
             timetable = routes_dict[line_id]['timetable']
             travel_time = routes_dict[line_id]['traveltime']
             
-            # Comprobamos: si el tiempo actual es mayor que el último horario de salida de la línea,
-            # no es posible coger ningún transporte en esta línea.
+            # Check if the current time is later than the line's last departure time.
+            # It is not possible to catch any transport on this line.
             if current_time > timetable[-1]:
                 route_possible = False
                 break
             
-            # Buscamos el índice de la salida cuyo horario sea >= current_time.
+            # Find the index of the first departure time that is >= current_time.
             idx = bisect.bisect_left(timetable, current_time)
-            # idx siempre será menor que len(timetable) por la comprobación anterior.
+            # idx will always be less than len(timetable) due to the previous check.
             next_start_time = timetable[idx]
             arrival_time = next_start_time + travel_time + int(TransferTime)
 
-            # Guardamos el tramo actual.
+            # Save
             route_times.append({
                 'line': line_id,
                 'departure_time': next_start_time,
                 'arrival_time': arrival_time
             })
 
-            # Actualizamos current_time para la siguiente línea.
+            # Update current_time for the next line.
             current_time = arrival_time
 
-        # Si para este horario de partida la ruta es posible, se añade al resultado.
+        # If the route is feasible for this departure time, add it to the result.
         if route_possible:
             result[start_time] = route_times
 
@@ -785,7 +785,7 @@ def calculate_route_times(routes_dict, route_sequence):
 
 
 #%% PATHS PER HOUR INITIATE
-# generate paths_per_hour Llamamos a la función para calcular los tiempos de la ruta
+# Generate paths_per_hour by calling the function to calculate the route times.
 paths_per_hour = {}
 numb_choices = len(g_paths_merge)
 
@@ -796,7 +796,7 @@ for i in range(numb_choices):
     route_times_result = calculate_route_times(dict_of_route, sequ_of_route)
     paths_per_hour[route_key] = route_times_result
 
-#Eliminate elements form paths_per_hour that end after 120!
+# Eliminate elements form paths_per_hour that end after 120!
     
 for route, departures in paths_per_hour.items():
     keys_to_delete = []
@@ -823,7 +823,7 @@ for route, times in paths_per_hour.items():
         total_duration = arrival_time_final - departure_time_initial
 
         durations[route][start_time] = {
-            "start_time": start_time,  # Guardamos el start_time
+            "start_time": start_time,  # Store the start_time.
             "total_duration": total_duration
         }
 
