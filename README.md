@@ -1,4 +1,4 @@
-ToolKit for Headway and Timetable Optimization based on heuristic search using Optuna.
+**ToolKit for Headway and Timetable Optimization based on heuristic search using Optuna.**
 
 **Transit Timetable Optimization with Optuna**
 
